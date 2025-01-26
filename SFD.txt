@@ -1,0 +1,58 @@
+Projet : coder un casse briques en language C
+Détails : 
+•	possibilité de séléctionner plusieurs niveaux
+•	différentes briques avec des spécificités
+     1.	briques plus dures à casser que d’autres
+     2.	différents coloris
+•	possibilité de gagner des bonus
+     1.	augmentation des dégats de la boule
+     2.	diminution de la vitesse de jeu
+     3.	allongement de la barre du joueur
+•	score affiché
+•	possibilités de customisations de la boule
+
+Améliorations :
+- possibilité d'ajouter des briques / boules / bonus supplémentaires par un système de fichiers / plugins (briques mobiles, briques générant des adversaires, bonus livré à destruction de brique, brique qui se duplique dans son voisinage et autres).
+- possibilité de jouer en mode adversaire : chaque joueur peut placer des briques sur le terrain de l'autre joueur et doit détruire les briques sur son propre terrain.
+- jouer en ligne en co-opération ou en mode adversaire.
+
+
+
+correction :
+_bouger la souris			a
+_sortie de terrain balle perdu		r
+_redémarrage jeu
+_création map, remplissage de la moitié du terrain lors de création de map	r
+_correction hitbox			a
+
+
+-possibilité ajout bonus : 		r/3chacun
+_ajout plusieurs balles
+_degats x2
+_augmentation vitesse joueur
+_allongement de la barre
+_deuxième vie
+_reduction vitesse balle
+_ajout -1 à toutes les cases
+
+
+-malus :				a/3chacun
+_ajout +1 à toutes les cases
+_augmentation vitesse de la balle
+_reduction taille barre
+_inversion gauche droite
+_duplication des briques voisinage
+
+
+-mode adversaire (ajout chrono)		r
+-ajout sauvegarde			r
+
+-menu paramètre :			a
+_personnalisation boule
+_ajout image de fond
+_couleur barre
+_taille fenêtre
+
+
+ajout plugin
+
