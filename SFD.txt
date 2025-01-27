@@ -20,9 +20,9 @@ Améliorations :
 
 correction :
 _bouger la souris			a
-_sortie de terrain balle perdu		r
+_sortie de terrain balle perdu		fait
 _redémarrage jeu
-_création map, remplissage de la moitié du terrain lors de création de map	r
+_création map, remplissage de la moitié du terrain lors de création de map	fait
 _correction hitbox			a
 
 

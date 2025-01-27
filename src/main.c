@@ -68,7 +68,11 @@ int** initialisationCarte(int taille){
 
     for (int i = 0; i < taille; i++) {
         for (int j = 0; j < taille; j++) {
+            if(i < taille /2){
             carte[i][j] = 1;
+            }else {
+                carte[i][j] = 0;
+            }
         }
     }
 
@@ -384,8 +388,11 @@ balle deplacement(balle balle, int** carte, int taille, joueur joueur){
         balle.balle_dx *= -1;
     } else if (balle.balle_y == 0) {
         balle.balle_dy *= -1;
-    } else if (balle.balle_y > WINDOW_Y - 25 && balle.balle_x > joueur.x && balle.balle_x < joueur.x + 75){
+    } else if (balle.balle_y > WINDOW_Y - 25 && balle.balle_x > joueur.x && balle.balle_x < joueur.x + 75) {
         balle.balle_dy *= -1;
+    }else if (balle.balle_y >=  WINDOW_Y) {
+        balle.balle_x = WINDOW_X /2;
+        balle.balle_y = 20;
     } else if (carte[balle.balle_y / (WINDOW_Y / taille)][balle.balle_x / (WINDOW_X / taille)] > 0){
         if (carte[(balle.balle_y - VITESSE_BALLE) / (WINDOW_Y / taille)][balle.balle_x / (WINDOW_X / taille)] > 0){
             balle.balle_dx *= -1;
