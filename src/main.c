@@ -7,6 +7,7 @@
 #include <SDL_ttf.h>
 #include <string.h>
 #include <dirent.h>
+#include <SDL_image.h>
 
 #define WINDOW_X 800
 #define WINDOW_Y 600
@@ -96,38 +97,47 @@ int** initialisationCarte(int taille){
 
 
 void affichierCarte(int** carte, int taille, SDL_Renderer *renderer, int balle_x, int balle_y, int joueur_x, int joueur_y) {
+
+    SDL_Texture* texturejoueur = IMG_LoadTexture(renderer, "../images/joueur.png");
+
+    SDL_Texture* textureBrique1 = IMG_LoadTexture(renderer, "../images/brique1.png");
+    SDL_Texture* textureBrique2 = IMG_LoadTexture(renderer, "../images/brique2.png");
+    SDL_Texture* textureBrique3 = IMG_LoadTexture(renderer, "../images/brique3.png");
+
+    if (!textureBrique1 || !textureBrique2 || !textureBrique3 || !texturejoueur) {
+        fprintf(stderr, "Erreur de chargement des textures : %s\n", IMG_GetError());
+    }
     for (int i = 0; i < taille; i++) {
         for (int j = 0; j < taille; j++) {
-            if (carte[i][j] == 1){
-                SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-                SDL_Rect square = {j * (WINDOW_X/taille), i * (WINDOW_Y/taille), WINDOW_X/taille, WINDOW_Y/taille};
-                SDL_RenderFillRect(renderer, &square);
+            SDL_Rect coord = {j * (WINDOW_X / taille), i * (WINDOW_Y / taille), WINDOW_X / taille, WINDOW_Y / taille};
+
+            if (carte[i][j] == 1) {
+                SDL_RenderCopy(renderer, textureBrique1, NULL, &coord); // Texture pour les briques de type 1
             }
-            else if (carte[i][j] == 2){
-                SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-                SDL_Rect square = {j * (WINDOW_X/taille), i * (WINDOW_Y/taille), WINDOW_X/taille, WINDOW_Y/taille};
-                SDL_RenderFillRect(renderer, &square);
+            else if (carte[i][j] == 2) {
+                SDL_RenderCopy(renderer, textureBrique2, NULL, &coord); // Texture pour les briques de type 2
             }
-            else if (carte[i][j] == 3){
-                SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
-                SDL_Rect square = {j * (WINDOW_X/taille), i * (WINDOW_Y/taille), WINDOW_X/taille, WINDOW_Y/taille};
-                SDL_RenderFillRect(renderer, &square);
+            else if (carte[i][j] == 3) {
+                SDL_RenderCopy(renderer, textureBrique3, NULL, &coord); // Texture pour les briques de type 3
             }
-            else if (carte[i][j] == 0){
-                SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
-                SDL_Rect square = {j * (WINDOW_X/taille), i * (WINDOW_Y/taille), WINDOW_X/taille, WINDOW_Y/taille};
-                SDL_RenderFillRect(renderer, &square);
+            else if (carte[i][j] == 0) {
+                SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255); // Couleur pour le fond (si nécessaire)
+                SDL_RenderFillRect(renderer, &coord);
             }
         }
     }
+
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_Rect balle = {balle_x, balle_y, taille, taille};
     SDL_RenderFillRect(renderer, &balle);
 
+    SDL_Rect joueur = {joueur_x, joueur_y, 75, 20};
+    SDL_RenderCopy(renderer, texturejoueur, NULL, &joueur);
 
-    SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
-    SDL_Rect joueur = {joueur_x, joueur_y, 75, 10};
-    SDL_RenderFillRect(renderer, &joueur);
+    SDL_DestroyTexture(texturejoueur);
+    SDL_DestroyTexture(textureBrique1);
+    SDL_DestroyTexture(textureBrique2);
+    SDL_DestroyTexture(textureBrique3);
 }
 
 void libererCarte(int** carte, int taille) {
@@ -168,8 +178,8 @@ void afficherTexte(SDL_Renderer* renderer, const char* texte, TTF_Font* font, SD
 
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
 
-    SDL_Rect destRect = {x, y, surface->w, surface->h};
-    SDL_RenderCopy(renderer, texture, NULL, &destRect);
+    SDL_Rect coord = {x, y, surface->w, surface->h};
+    SDL_RenderCopy(renderer, texture, NULL, &coord);
 
     SDL_FreeSurface(surface);
     SDL_DestroyTexture(texture);
@@ -530,7 +540,7 @@ void game(){
 
     joueur joueur;
     joueur.x = WINDOW_X/2;
-    joueur.y = WINDOW_Y - 20;
+    joueur.y = WINDOW_Y - 30;
 
     char* option[] = {"creer une carte", "charger une carte","Paremetre des bonus"};
     int menuPrincipal = fen_QCM(option, 3, "");
@@ -574,6 +584,7 @@ void game(){
         OuvrirParametres(renderer);
     }
 }
+
 
 int main(int argc, char *argv[]) {
     game();
