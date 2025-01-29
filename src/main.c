@@ -549,10 +549,10 @@ int main(int argc, char *argv[]) {
                 } else if (joueur.x > WINDOW_X - 75) {
                     joueur.x = WINDOW_X - 75;
                 }
-                balle1 = deplacement(balle1, carte, taille, joueur);
-                affichierCarte(carte, taille, renderer, balle1.balle_x, balle1.balle_y, joueur.x, joueur.y);
-                SDL_RenderPresent(renderer);
             }
+            balle1 = deplacement(balle1, carte, taille, joueur);
+            affichierCarte(carte, taille, renderer, balle1.balle_x, balle1.balle_y, joueur.x, joueur.y);
+            SDL_RenderPresent(renderer);
             SDL_Delay(10);
         }
         SDL_Delay(200);
