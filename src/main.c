@@ -13,6 +13,9 @@
 #define VITESSE_BALLE 1
 #define VITESSE_JOUEUR 5
 
+void game();
+
+
 int degatballe = 1;
 
 void degatballex2() {
@@ -301,6 +304,9 @@ int fen_QCM(char* texte[], int taille, char* nom) {
     //SDL_RenderDrawRect(renderer, &boutonOui); // Bordures blanches
     //SDL_RenderDrawRect(renderer, &boutonNon);
 
+    SDL_Rect bouton = {WINDOW_X/20, WINDOW_Y/30, WINDOW_Y/20, WINDOW_Y/20};
+    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+    SDL_RenderFillRect(renderer, &bouton);
     SDL_RenderPresent(renderer);
 
     SDL_Event event;
@@ -321,6 +327,11 @@ int fen_QCM(char* texte[], int taille, char* nom) {
                     SDL_DestroyRenderer(renderer);
                     SDL_DestroyWindow(window);
                     return x / (WINDOW_Y / taille);
+                } else if (x >= WINDOW_X/20 && x <= WINDOW_X/20 + WINDOW_Y/20 && y >= WINDOW_Y/20 && y <= WINDOW_Y/20 + WINDOW_Y/20){
+                    SDL_DestroyRenderer(renderer);
+                    SDL_DestroyWindow(window);
+                    SDL_Quit();
+                    game();
                 }
             }
         }
@@ -479,23 +490,23 @@ void OuvrirParametres(SDL_Renderer *renderer) {
     TTF_CloseFont(font);
 }
 
-int main(int argc, char *argv[]) {
+void game(){
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         fprintf(stderr, "Erreur d'initialisation de SDL: %s\n", SDL_GetError());
-        return 1;
+        exit(EXIT_FAILURE);
     }
 
     SDL_Window *window = SDL_CreateWindow("Fenêtre Bleue",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,WINDOW_X, WINDOW_Y,SDL_WINDOW_SHOWN);
     if (!window) {
         fprintf(stderr, "Erreur de création de la fenêtre: %s\n", SDL_GetError());
         SDL_Quit();
-        return 1;
+        exit(EXIT_FAILURE);
     }
 
     if (TTF_Init() == -1) {
         fprintf(stderr, "Erreur d'initialisation de SDL_ttf: %s\n", TTF_GetError());
         SDL_Quit();
-        return 1;
+        exit(EXIT_FAILURE);
     }
 
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
@@ -503,7 +514,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Erreur de création du renderer: %s\n", SDL_GetError());
         SDL_DestroyWindow(window);
         SDL_Quit();
-        return 1;
+        exit(EXIT_FAILURE);
     }
 
     SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
@@ -562,7 +573,10 @@ int main(int argc, char *argv[]) {
     }else if(menuPrincipal ==2 ) {
         OuvrirParametres(renderer);
     }
+}
 
+int main(int argc, char *argv[]) {
+    game();
     return 0;
 }
 
