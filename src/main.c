@@ -13,6 +13,18 @@
 #define VITESSE_BALLE 1
 #define VITESSE_JOUEUR 5
 
+int degatballe = 1;
+
+void degatballex2() {
+    degatballe = 2;
+}
+
+/*typedef struct {
+    char nom[50];
+    bool actif =false;
+    int type;
+}bonus;*/
+
 typedef struct {
     int balle_x;
     int balle_y;
@@ -407,6 +419,66 @@ balle deplacement(balle balle, int** carte, int taille, joueur joueur){
     return balle;
 }
 
+void AugJoueur() {
+
+}
+
+void OuvrirParametres(SDL_Renderer *renderer) {
+    SDL_Event event;
+    bool encours = true;
+
+    TTF_Font* font = TTF_OpenFont("../font/OpenSans-VariableFont_wdth,wght.ttf", 24);
+    if (!font) {
+        fprintf(stderr, "Erreur de chargement de la police: %s\n", TTF_GetError());
+        return;
+    }
+
+    while (encours) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT || (event.type == SDL_KEYDOWN && event.key.keysym.scancode == SDL_SCANCODE_ESCAPE)) {
+                encours = false;
+            }
+            if (event.type == SDL_MOUSEBUTTONDOWN) {
+                int x = event.button.x;
+                int y = event.button.y;
+
+                if (y >= 150 && y <= 200) {
+                    degatballex2();
+                    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+                    SDL_RenderClear(renderer);
+                    SDL_Color noir = {0, 0, 0, 255};
+                    afficherTexte(renderer, "Parametres", font, noir, 300, 100);
+                    afficherTexte(renderer, "Degats X2", font, noir, 300, 150);
+                    afficherTexte(renderer, "Balle X2", font, noir, 300, 200);
+                    afficherTexte(renderer, "Allongement de la barre", font, noir, 300, 250);
+                    char message[256];
+                    snprintf(message, sizeof(message), "Degats de la balle : %d", degatballe);
+                    afficherTexte(renderer, message, font, noir, 300, 350);
+                    SDL_RenderPresent(renderer);
+                    SDL_Delay(2000);
+                } else if (y >= 200 && y <= 250) {
+                    printf("Balle X2 activee !\n");
+                } else if (y >= 250 && y <= 300) {
+
+                    printf("Barre allongee !\n");
+                }
+            }
+        }
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_RenderClear(renderer);
+
+        SDL_Color noir = {0, 0, 0, 255};
+        afficherTexte(renderer, "Degats X2", font, noir, 300, 150);
+        afficherTexte(renderer, "Balle X2", font, noir, 300, 200);
+        afficherTexte(renderer, "Allongement de la barre", font, noir, 300, 250);
+        afficherTexte(renderer, "retour", font, noir, 300, 250);
+
+        SDL_RenderPresent(renderer);
+    }
+
+    TTF_CloseFont(font);
+}
+
 int main(int argc, char *argv[]) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         fprintf(stderr, "Erreur d'initialisation de SDL: %s\n", SDL_GetError());
@@ -449,8 +521,8 @@ int main(int argc, char *argv[]) {
     joueur.x = WINDOW_X/2;
     joueur.y = WINDOW_Y - 20;
 
-    char* option[] = {"creer une carte", "charger une carte"};
-    int menuPrincipal = fen_QCM(option, 2, "");
+    char* option[] = {"creer une carte", "charger une carte","Paremetre des bonus"};
+    int menuPrincipal = fen_QCM(option, 3, "");
     if (menuPrincipal == 0){
         CreatCarte(taille, renderer);
     }
@@ -487,7 +559,10 @@ int main(int argc, char *argv[]) {
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
         SDL_Quit();
+    }else if(menuPrincipal ==2 ) {
+        OuvrirParametres(renderer);
     }
 
     return 0;
 }
+
