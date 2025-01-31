@@ -104,20 +104,27 @@ int** initialisationCarte(int taille){
     return carte;
 }
 
-void afficher_ATH(SDL_Renderer *renderer, joueur joueur){
+void afficher_fond(SDL_Renderer *renderer, joueur joueur){
     SDL_Texture* texturejoueur = IMG_LoadTexture(renderer, "../images/joueur.png");
-    if (!texturejoueur) {
+    SDL_Texture* texturefond = IMG_LoadTexture(renderer, "../images/fond.png");
+
+    if (!texturejoueur || !texturefond) {
         fprintf(stderr, "Erreur de chargement des textures : %s\n", IMG_GetError());
     }
     TTF_Font* font = TTF_OpenFont("../font/OpenSans-VariableFont_wdth,wght.ttf", 24);
+
     SDL_Rect vie = {WINDOW_X/10, WINDOW_Y/10, 75, 20};
     SDL_RenderCopy(renderer, texturejoueur, NULL, &vie);
-    SDL_Color blanc = {255, 255, 255, 255};
 
+    SDL_Rect fond = {0, 0, WINDOW_X, WINDOW_Y};
+    SDL_RenderCopy(renderer, texturefond, NULL, &fond);
+
+    SDL_Color blanc = {255, 255, 255, 255};
     char str_vie[10];
     snprintf(str_vie, sizeof(str_vie), "%d", joueur.vie);
     afficherTexte(renderer, str_vie, font, blanc, WINDOW_X / 12, WINDOW_Y / 12);
     SDL_DestroyTexture(texturejoueur);
+    SDL_DestroyTexture(texturefond);
     TTF_CloseFont(font);
 }
 
@@ -151,17 +158,11 @@ void affichierCarte(int** carte, int taille, SDL_Renderer *renderer, joueur joue
             else if (carte[i][j] == 3) {
                 SDL_RenderCopy(renderer, textureBrique3, NULL, &coord); // Texture pour les briques de type 3
             }
-            else if (carte[i][j] == 0) {
-                SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255); // Couleur pour le fond (si nécessaire)
-                SDL_RenderFillRect(renderer, &coord);
-            }
         }
     }
 
     SDL_Rect image_joueur = {joueur.x, joueur.y, 75, 20};
     SDL_RenderCopy(renderer, texturejoueur, NULL, &image_joueur);
-
-    afficher_ATH(renderer, joueur);
 
     SDL_DestroyTexture(texturejoueur);
     SDL_DestroyTexture(textureBrique1);
@@ -599,7 +600,7 @@ void game() {
         exit(EXIT_FAILURE);
     }
 
-    SDL_Window *window = SDL_CreateWindow("Fenêtre Bleue",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,WINDOW_X, WINDOW_Y,SDL_WINDOW_SHOWN);
+    SDL_Window *window = SDL_CreateWindow("Fenêtre Bleue",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,WINDOW_X*1.20, WINDOW_Y,SDL_WINDOW_SHOWN);
     if (!window) {
         fprintf(stderr, "Erreur de création de la fenêtre: %s\n", SDL_GetError());
         SDL_Quit();
@@ -629,7 +630,7 @@ void game() {
     balle balle1;
     balle1.balle_x = WINDOW_X/2;
     balle1.balle_y = 200;
-    balle1.vitesse = 1;
+    balle1.vitesse = 2;
     balle1.balle_dx = balle1.vitesse;
     balle1.balle_dy = balle1.vitesse;
     balle1.degats = 1;
@@ -671,6 +672,7 @@ void game() {
                 }
 
             }
+            afficher_fond(renderer, joueur);
             affichierCarte(carte, taille, renderer, joueur);
             for(int i = 0; i<nb_balles;i++){
                 balles[i] = deplacement(balles[i], carte, taille, joueur);
@@ -715,6 +717,7 @@ void game() {
 
                 }
                 affichierCarte(carte, taille, renderer, joueur);
+                afficher_fond(renderer, joueur);
                 for(int i = 0; i<nb_balles;i++){
                     balles[i] = deplacement(balles[i], carte, taille, joueur);
                     afficherBalle(renderer, balles[i], taille);
