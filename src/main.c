@@ -12,8 +12,6 @@
 
 #define WINDOW_X 800
 #define WINDOW_Y 600
-#define VITESSE_BALLE 1
-#define VITESSE_JOUEUR 5
 
 void game();
 
@@ -59,7 +57,7 @@ int** chargeCarteDansTab(char* nom, int taille) {
     FILE* fichier = fopen(chemin, "r");
     if (fichier == NULL) {
         fprintf(stderr, "Erreur d'ouverture du fichier.\n");
-        return 0;
+        return NULL;
     }
     int** carte = (int**)malloc(taille * sizeof(int*));
     for (int i = 0; i < taille; i++) {
@@ -96,7 +94,7 @@ int** initialisationCarte(int taille){
     for (int i = 0; i < taille; i++) {
         for (int j = 0; j < taille; j++) {
             if(i < taille /2){
-            carte[i][j] = 1;
+                carte[i][j] = 1;
             }else {
                 carte[i][j] = 0;
             }
@@ -120,9 +118,16 @@ void afficher_ATH(SDL_Renderer *renderer, joueur joueur){
     snprintf(str_vie, sizeof(str_vie), "%d", joueur.vie);
     afficherTexte(renderer, str_vie, font, blanc, WINDOW_X / 12, WINDOW_Y / 12);
     SDL_DestroyTexture(texturejoueur);
+    TTF_CloseFont(font);
 }
 
-void affichierCarte(int** carte, int taille, SDL_Renderer *renderer, int balle_x, int balle_y, joueur joueur) {
+void afficherBalle(SDL_Renderer *renderer, balle balle, int taille){
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_Rect textureBalle = {balle.balle_x, balle.balle_y, taille, taille};
+    SDL_RenderFillRect(renderer, &textureBalle);
+}
+
+void affichierCarte(int** carte, int taille, SDL_Renderer *renderer, joueur joueur) {
 
     SDL_Texture* texturejoueur = IMG_LoadTexture(renderer, "../images/joueur.png");
 
@@ -152,10 +157,6 @@ void affichierCarte(int** carte, int taille, SDL_Renderer *renderer, int balle_x
             }
         }
     }
-
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    SDL_Rect balle = {balle_x, balle_y, taille, taille};
-    SDL_RenderFillRect(renderer, &balle);
 
     SDL_Rect image_joueur = {joueur.x, joueur.y, 75, 20};
     SDL_RenderCopy(renderer, texturejoueur, NULL, &image_joueur);
@@ -230,6 +231,7 @@ char* fen_input(char* nom){
         TTF_CloseFont(font);
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
+        free(texte);
         return NULL;
     }
     texte[0] = '\0';
@@ -360,8 +362,7 @@ int fen_QCM(char* texte[], int taille, char* nom) {
 }
 
 void CreatCarte(int taille, SDL_Renderer *renderer, joueur joueur){
-    int** carte = (int**)malloc(taille * sizeof(int*));
-    carte = initialisationCarte(taille);
+    int** carte = initialisationCarte(taille);
     char* nom = (char*)malloc(256);
     int saisie = 1;
     SDL_Event event;
@@ -385,59 +386,15 @@ void CreatCarte(int taille, SDL_Renderer *renderer, joueur joueur){
                     }
                 }
             }
-            affichierCarte(carte, taille, renderer, -10000, -10000, joueur);
+            affichierCarte(carte, taille, renderer, joueur);
             SDL_RenderPresent(renderer);
         }
         SDL_Delay(200);
     }
-    libererCarte(carte, taille);
-}
-
-void CreatCarteAdversaire(int taille, SDL_Renderer *renderer, joueur joueur) {
-    int** carte = initialisationCarte(taille);
-    if (carte == NULL) {
-        fprintf(stderr, "Erreur : impossible d'initialiser la carte.\n");
-        return;
-    }
-
-    char* nom = (char*)malloc(256);
-    if (nom == NULL) {
-        fprintf(stderr, "Erreur : impossible d'allouer la mémoire pour le nom.\n");
-        libererCarte(carte, taille);
-        return;
-    }
-
-    int saisie = 1;
-    SDL_Event event;
-    while (saisie) {
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
-                saisie = 0;
-            } else if (event.type == SDL_MOUSEBUTTONDOWN) {
-                if (event.button.button == SDL_BUTTON_LEFT) {
-                    carte = ajoutBrique(carte, taille);
-                }
-            } else if (event.type == SDL_KEYDOWN) {
-                if (event.key.keysym.sym == SDLK_ESCAPE) {
-                    saisie = 0;
-
-                    // Générer un nom de fichier aléatoire
-                    int id = rand();
-                    snprintf(nom, 256, "text%d", id); // Pas d'extension en dur
-                    int** carteChargee = chargeCarteDansTab(nom, taille);
-                    affichierCarte(carteChargee, 20, renderer, -10000, -10000, joueur);
-                    SDL_RenderPresent(renderer);
-                    libererCarte(carteChargee, taille);
-                }
-            }
-        }
-        affichierCarte(carte, taille, renderer, -10000, -10000, joueur);
-        SDL_RenderPresent(renderer);
-        SDL_Delay(200);
-    }
-    libererCarte(carte, taille);
     free(nom);
+    libererCarte(carte, taille);
 }
+
 
 char* choixCarte(){
     char **cartes = NULL;
@@ -505,7 +462,9 @@ balle deplacement(balle balle, int** carte, int taille, joueur joueur){
     return balle;
 }
 
+void AugJoueur() {
 
+}
 
 void OuvrirParametres(SDL_Renderer *renderer) {
     SDL_Event event;
@@ -593,24 +552,27 @@ void game(){
     SDL_RenderClear(renderer);
 
     int taille = 20;
-
+    int nb_balles = 1;
+    balle *balles = malloc(nb_balles * sizeof(balle));
     balle balle1;
     balle1.balle_x = WINDOW_X/2;
-    balle1.balle_y = 20;
+    balle1.balle_y = 200;
     balle1.vitesse = 1;
     balle1.balle_dx = balle1.vitesse;
     balle1.balle_dy = balle1.vitesse;
     balle1.degats = 1;
+    balles[0] = balle1;
 
+    printf("test");
     joueur joueur;
     joueur.x = WINDOW_X/2;
     joueur.y = WINDOW_Y - 30;
     joueur.vie = 1;
     joueur.vitesse = 7;
     joueur.taille = 75;
-
-    char* option[] = {"creer une carte", "charger une carte","Paremetre des bonus","Mode Adversaire"};
+    char* option[] = {"creer une carte", "charger une carte","Paremetre des bonus"};
     int menuPrincipal = fen_QCM(option, 4, "");
+    printf("test");
     if (menuPrincipal == 0){
         CreatCarte(taille, renderer, joueur);
     }
@@ -627,9 +589,9 @@ void game(){
                     if (event.key.keysym.sym == SDLK_ESCAPE) {
                         saisie = 0;
                     } else if (event.key.keysym.sym == SDLK_LEFT) {
-                        joueur.x -= VITESSE_JOUEUR;
+                        joueur.x -= joueur.vitesse;
                     } else if (event.key.keysym.sym == SDLK_RIGHT) {
-                        joueur.x += VITESSE_JOUEUR;
+                        joueur.x += joueur.vitesse;
                     }
                 }
                 if (joueur.x < 0) {
@@ -639,8 +601,11 @@ void game(){
                 }
 
             }
-            balle1 = deplacement(balle1, carte, taille, joueur);
-            affichierCarte(carte, taille, renderer, balle1.balle_x, balle1.balle_y, joueur);
+            affichierCarte(carte, taille, renderer, joueur);
+            for(int i = 0; i<nb_balles;i++){
+                balles[i] = deplacement(balles[i], carte, taille, joueur);
+                afficherBalle(renderer, balles[i], taille);
+            }
             SDL_RenderPresent(renderer);
             SDL_Delay(10);
         }
@@ -654,39 +619,7 @@ void game(){
     {
         int menuAdversaire = fen_QCM(option, 2, "");
         if (menuAdversaire == 0) {
-            CreatCarteAdversaire(taille, renderer, joueur);
-        }else if (menuAdversaire == 1) {
-            int ** carte = chargeCarteDansTab(choixCarte(), 20);
-            int saisie = 1;
-            SDL_Event event;
-            while (saisie) {
-                while (SDL_PollEvent(&event)) {
-                    if (event.type == SDL_QUIT) {
-                        saisie = 0;
-                    } else if (event.type == SDL_KEYDOWN) {
-                        if (event.key.keysym.sym == SDLK_ESCAPE) {
-                            saisie = 0;
-                        } else if (event.key.keysym.sym == SDLK_LEFT) {
-                            joueur.x -= VITESSE_JOUEUR;
-                        } else if (event.key.keysym.sym == SDLK_RIGHT) {
-                            joueur.x += VITESSE_JOUEUR;
-                        }
-                    }
-                    if (joueur.x < 0) {
-                        joueur.x = 0;
-                    } else if (joueur.x > WINDOW_X - 75) {
-                        joueur.x = WINDOW_X - 75;
-                    }
-                }
-                balle1 = deplacement(balle1, carte, taille, joueur);
-                affichierCarte(carte, taille, renderer, balle1.balle_x, balle1.balle_y, joueur);
-                SDL_RenderPresent(renderer);
-                SDL_Delay(10);
-            }
-            SDL_Delay(200);
-            SDL_DestroyRenderer(renderer);
-            SDL_DestroyWindow(window);
-            SDL_Quit();
+
         }
     }
 }
