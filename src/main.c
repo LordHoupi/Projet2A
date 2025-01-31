@@ -402,6 +402,7 @@ void CreatCarteAdversaire(int taille, SDL_Renderer *renderer, joueur joueur) {
         return;
     }
 
+
     char* nom = (char*)malloc(256);
     if (nom == NULL) {
         fprintf(stderr, "Erreur : impossible d'allouer la mémoire pour le nom.\n");
