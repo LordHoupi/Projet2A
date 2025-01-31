@@ -402,7 +402,6 @@ void CreatCarteAdversaire(int taille, SDL_Renderer *renderer, joueur joueur) {
         return;
     }
 
-
     char* nom = (char*)malloc(256);
     if (nom == NULL) {
         fprintf(stderr, "Erreur : impossible d'allouer la mémoire pour le nom.\n");
@@ -427,17 +426,52 @@ void CreatCarteAdversaire(int taille, SDL_Renderer *renderer, joueur joueur) {
                     // Générer un nom de fichier aléatoire
                     int id = rand();
                     snprintf(nom, 256, "text%d", id); // Pas d'extension en dur
+
+                    // Sauvegarder la carte
+                    saveCarte(carte, taille, nom);
+
+                    // Vérifier que le fichier existe avant de le charger
+                    FILE* testFichier = fopen(nom, "r");
+                    if (testFichier == NULL) {
+                        fprintf(stderr, "Erreur : le fichier %s n'existe pas ou ne peut pas être ouvert.\n", nom);
+                        libererCarte(carte, taille);
+                        free(nom);
+                        return;
+                    }
+                    fclose(testFichier);
+
+                    // Charger la carte sauvegardée
                     int** carteChargee = chargeCarteDansTab(nom, taille);
-                    affichierCarte(carteChargee, 20, renderer,joueur);
+                    if (carteChargee == NULL) {
+                        fprintf(stderr, "Erreur : impossible de charger la carte.\n");
+                        free(nom);
+                        return;
+                    }
+
+                    // Afficher la carte chargée
+                    affichierCarte(carteChargee, taille, renderer, joueur);
                     SDL_RenderPresent(renderer);
+
+                    // Libérer la carte chargée
                     libererCarte(carteChargee, taille);
+
+                    // Libérer le nom
+                    free(nom);
+
+                    // Lancer le jeu
+                    game();
+                    return;
                 }
             }
         }
-        affichierCarte(carte, taille, renderer,joueur);
+
+        // Affichage de la carte en cours de création
+        affichierCarte(carte, taille, renderer, joueur);
         SDL_RenderPresent(renderer);
         SDL_Delay(200);
     }
+
+    // Libérer la carte et le nom si l'utilisateur quitte sans sauvegarder
     libererCarte(carte, taille);
     free(nom);
 }
