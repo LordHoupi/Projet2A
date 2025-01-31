@@ -393,6 +393,51 @@ void CreatCarte(int taille, SDL_Renderer *renderer, joueur joueur){
     libererCarte(carte, taille);
 }
 
+void CreatCarteAdversaire(int taille, SDL_Renderer *renderer, joueur joueur) {
+    int** carte = initialisationCarte(taille);
+    if (carte == NULL) {
+        fprintf(stderr, "Erreur : impossible d'initialiser la carte.\n");
+        return;
+    }
+
+    char* nom = (char*)malloc(256);
+    if (nom == NULL) {
+        fprintf(stderr, "Erreur : impossible d'allouer la mémoire pour le nom.\n");
+        libererCarte(carte, taille);
+        return;
+    }
+
+    int saisie = 1;
+    SDL_Event event;
+    while (saisie) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                saisie = 0;
+            } else if (event.type == SDL_MOUSEBUTTONDOWN) {
+                if (event.button.button == SDL_BUTTON_LEFT) {
+                    carte = ajoutBrique(carte, taille);
+                }
+            } else if (event.type == SDL_KEYDOWN) {
+                if (event.key.keysym.sym == SDLK_ESCAPE) {
+                    saisie = 0;
+
+                    // Générer un nom de fichier aléatoire
+                    int id = rand();
+                    snprintf(nom, 256, "text%d", id); // Pas d'extension en dur
+                    int** carteChargee = chargeCarteDansTab(nom, taille);
+                    affichierCarte(carteChargee, 20, renderer, -10000, -10000, joueur);
+                    SDL_RenderPresent(renderer);
+                    libererCarte(carteChargee, taille);
+                }
+            }
+        }
+        affichierCarte(carte, taille, renderer, -10000, -10000, joueur);
+        SDL_RenderPresent(renderer);
+        SDL_Delay(200);
+    }
+    libererCarte(carte, taille);
+    free(nom);
+}
 
 char* choixCarte(){
     char **cartes = NULL;
@@ -460,9 +505,7 @@ balle deplacement(balle balle, int** carte, int taille, joueur joueur){
     return balle;
 }
 
-void AugJoueur() {
 
-}
 
 void OuvrirParametres(SDL_Renderer *renderer) {
     SDL_Event event;
@@ -566,7 +609,7 @@ void game(){
     joueur.vitesse = 7;
     joueur.taille = 75;
 
-    char* option[] = {"creer une carte", "charger une carte","Paremetre des bonus"};
+    char* option[] = {"creer une carte", "charger une carte","Paremetre des bonus","Mode Adversaire"};
     int menuPrincipal = fen_QCM(option, 4, "");
     if (menuPrincipal == 0){
         CreatCarte(taille, renderer, joueur);
@@ -610,7 +653,39 @@ void game(){
     {
         int menuAdversaire = fen_QCM(option, 2, "");
         if (menuAdversaire == 0) {
-
+            CreatCarteAdversaire(taille, renderer, joueur);
+        }else if (menuAdversaire == 1) {
+            int ** carte = chargeCarteDansTab(choixCarte(), 20);
+            int saisie = 1;
+            SDL_Event event;
+            while (saisie) {
+                while (SDL_PollEvent(&event)) {
+                    if (event.type == SDL_QUIT) {
+                        saisie = 0;
+                    } else if (event.type == SDL_KEYDOWN) {
+                        if (event.key.keysym.sym == SDLK_ESCAPE) {
+                            saisie = 0;
+                        } else if (event.key.keysym.sym == SDLK_LEFT) {
+                            joueur.x -= VITESSE_JOUEUR;
+                        } else if (event.key.keysym.sym == SDLK_RIGHT) {
+                            joueur.x += VITESSE_JOUEUR;
+                        }
+                    }
+                    if (joueur.x < 0) {
+                        joueur.x = 0;
+                    } else if (joueur.x > WINDOW_X - 75) {
+                        joueur.x = WINDOW_X - 75;
+                    }
+                }
+                balle1 = deplacement(balle1, carte, taille, joueur);
+                affichierCarte(carte, taille, renderer, balle1.balle_x, balle1.balle_y, joueur);
+                SDL_RenderPresent(renderer);
+                SDL_Delay(10);
+            }
+            SDL_Delay(200);
+            SDL_DestroyRenderer(renderer);
+            SDL_DestroyWindow(window);
+            SDL_Quit();
         }
     }
 }
