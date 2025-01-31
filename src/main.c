@@ -423,7 +423,8 @@ void CreatCarteAdversaire(int taille, SDL_Renderer *renderer, joueur joueur) {
                 if (event.key.keysym.sym == SDLK_ESCAPE) {
                     saisie = 0;
 
-                    // Générer un nom de fichier aléatoire
+                    // Génére
+                    // r un nom de fichier aléatoire
                     int id = rand();
                     snprintf(nom, 256, "text%d", id); // Pas d'extension en dur
 
