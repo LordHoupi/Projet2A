@@ -8,6 +8,7 @@
 #include <string.h>
 #include <dirent.h>
 #include <SDL_image.h>
+#include <time.h>
 
 #define WINDOW_X 800
 #define WINDOW_Y 600
@@ -31,9 +32,8 @@ typedef struct {
     int taille;
     int vitesse;
     int vie;
+    double temps;
 } joueur;
-
-
 
 void afficherTexte(SDL_Renderer* renderer, const char* texte, TTF_Font* font, SDL_Color color, int x, int y) {
     SDL_Surface* surface = TTF_RenderText_Solid(font, texte, color);
@@ -567,7 +567,7 @@ void game(){
     joueur.taille = 75;
 
     char* option[] = {"creer une carte", "charger une carte","Paremetre des bonus"};
-    int menuPrincipal = fen_QCM(option, 3, "");
+    int menuPrincipal = fen_QCM(option, 4, "");
     if (menuPrincipal == 0){
         CreatCarte(taille, renderer, joueur);
     }
@@ -606,6 +606,12 @@ void game(){
         SDL_Quit();
     }else if(menuPrincipal == 2) {
         OuvrirParametres(renderer);
+    }else if(menuPrincipal == 3);
+    {
+        int menuAdversaire = fen_QCM(option, 2, "");
+        if (menuAdversaire == 0) {
+
+        }
     }
 }
 
