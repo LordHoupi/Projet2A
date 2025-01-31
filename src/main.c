@@ -395,6 +395,51 @@ void CreatCarte(int taille, SDL_Renderer *renderer, joueur joueur){
     libererCarte(carte, taille);
 }
 
+void CreatCarteAdversaire(int taille, SDL_Renderer *renderer, joueur joueur) {
+    int** carte = initialisationCarte(taille);
+    if (carte == NULL) {
+        fprintf(stderr, "Erreur : impossible d'initialiser la carte.\n");
+        return;
+    }
+
+    char* nom = (char*)malloc(256);
+    if (nom == NULL) {
+        fprintf(stderr, "Erreur : impossible d'allouer la mémoire pour le nom.\n");
+        libererCarte(carte, taille);
+        return;
+    }
+
+    int saisie = 1;
+    SDL_Event event;
+    while (saisie) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                saisie = 0;
+            } else if (event.type == SDL_MOUSEBUTTONDOWN) {
+                if (event.button.button == SDL_BUTTON_LEFT) {
+                    carte = ajoutBrique(carte, taille);
+                }
+            } else if (event.type == SDL_KEYDOWN) {
+                if (event.key.keysym.sym == SDLK_ESCAPE) {
+                    saisie = 0;
+
+                    // Générer un nom de fichier aléatoire
+                    int id = rand();
+                    snprintf(nom, 256, "text%d", id); // Pas d'extension en dur
+                    int** carteChargee = chargeCarteDansTab(nom, taille);
+                    affichierCarte(carteChargee, 20, renderer, -10000, -10000, joueur);
+                    SDL_RenderPresent(renderer);
+                    libererCarte(carteChargee, taille);
+                }
+            }
+        }
+        affichierCarte(carte, taille, renderer, -10000, -10000, joueur);
+        SDL_RenderPresent(renderer);
+        SDL_Delay(200);
+    }
+    libererCarte(carte, taille);
+    free(nom);
+}
 
 char* choixCarte(){
     char **cartes = NULL;
