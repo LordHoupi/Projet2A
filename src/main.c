@@ -428,13 +428,14 @@ void CreatCarteAdversaire(int taille, SDL_Renderer *renderer, joueur joueur) {
                     int id = rand();
                     snprintf(nom, 256, "text%d", id); // Pas d'extension en dur
                     int** carteChargee = chargeCarteDansTab(nom, taille);
-                    affichierCarte(carteChargee, 20, renderer, -10000, -10000, joueur);
+                    affichierCarte(carteChargee, 20, renderer, joueur);
                     SDL_RenderPresent(renderer);
                     libererCarte(carteChargee, taille);
                 }
             }
         }
-        affichierCarte(carte, taille, renderer, -10000, -10000, joueur);
+        affichierCarte(carte, taille, renderer
+                       , joueur);
         SDL_RenderPresent(renderer);
         SDL_Delay(200);
     }
