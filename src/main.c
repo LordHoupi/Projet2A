@@ -637,6 +637,7 @@ void game(){
                 } else if (joueur.x > WINDOW_X - 75) {
                     joueur.x = WINDOW_X - 75;
                 }
+
             }
             balle1 = deplacement(balle1, carte, taille, joueur);
             affichierCarte(carte, taille, renderer, balle1.balle_x, balle1.balle_y, joueur);
