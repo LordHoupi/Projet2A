@@ -401,13 +401,7 @@ void CreatCarteAdversaire(int taille, SDL_Renderer *renderer, joueur joueur) {
         fprintf(stderr, "Erreur : impossible d'initialiser la carte.\n");
         return;
     }
-
-    char* nom = (char*)malloc(256);
-    if (nom == NULL) {
-        fprintf(stderr, "Erreur : impossible d'allouer la mémoire pour le nom.\n");
-        libererCarte(carte, taille);
-        return;
-    }
+    char nom[256];
 
     int saisie = 1;
     SDL_Event event;
@@ -430,22 +424,22 @@ void CreatCarteAdversaire(int taille, SDL_Renderer *renderer, joueur joueur) {
 
                     // Sauvegarder la carte
                     saveCarte(carte, taille, nom);
-
+                    char chemin[256];
+                    snprintf(chemin, sizeof(chemin), "../cartes/%s.txt", nom);
                     // Vérifier que le fichier existe avant de le charger
-                    FILE* testFichier = fopen(nom, "r");
+                    FILE* testFichier = fopen(chemin, "r");
                     if (testFichier == NULL) {
                         fprintf(stderr, "Erreur : le fichier %s n'existe pas ou ne peut pas être ouvert.\n", nom);
                         libererCarte(carte, taille);
-                        free(nom);
                         return;
                     }
                     fclose(testFichier);
 
                     // Charger la carte sauvegardée
-                    int** carteChargee = chargeCarteDansTab(nom, taille);
+                    int** carteChargee = chargeCarteDansTab(chemin, taille);
                     if (carteChargee == NULL) {
                         fprintf(stderr, "Erreur : impossible de charger la carte.\n");
-                        free(nom);
+                        free(chemin);
                         return;
                     }
 
@@ -455,9 +449,6 @@ void CreatCarteAdversaire(int taille, SDL_Renderer *renderer, joueur joueur) {
 
                     // Libérer la carte chargée
                     libererCarte(carteChargee, taille);
-
-                    // Libérer le nom
-                    free(nom);
 
                     // Lancer le jeu
                     game();
@@ -644,7 +635,6 @@ void game() {
     balle1.degats = 1;
     balles[0] = balle1;
 
-    printf("test");
     joueur joueur;
     joueur.x = WINDOW_X/2;
     joueur.y = WINDOW_Y - 30;
@@ -653,7 +643,6 @@ void game() {
     joueur.taille = 75;
     char* option[] = {"creer une carte", "charger une carte","Paremetre des bonus","Menu Adversaire"};
     int menuPrincipal = fen_QCM(option, 4, "");
-    printf("test");
     if (menuPrincipal == 0){
         CreatCarte(taille, renderer, joueur);
     }
@@ -696,8 +685,7 @@ void game() {
         SDL_Quit();
     }else if(menuPrincipal == 2) {
         OuvrirParametres(renderer);
-    }else if(menuPrincipal == 3);
-    {
+    }else if(menuPrincipal == 3) {
         int menuAdversaire = fen_QCM(option, 2, "");
         if (menuAdversaire == 0) {
             CreatCarteAdversaire(20, renderer, joueur);
