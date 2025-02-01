@@ -22,6 +22,7 @@ typedef struct {
     int balle_dy;
     int degats;
     int vitesse;
+    char* skin;
 } balle;
 
 typedef struct {
@@ -32,6 +33,7 @@ typedef struct {
     int vie;
     double temps;
     int score;
+    char* skin;
 } joueur;
 
 void afficherTexte(SDL_Renderer* renderer, const char* texte, TTF_Font* font, SDL_Color color, int x, int y) {
@@ -107,11 +109,15 @@ int** initialisationCarte(int taille){
 
 void afficher_fond(SDL_Renderer *renderer, joueur joueur){
     SDL_RenderClear(renderer);
-    SDL_Texture* texturejoueur = IMG_LoadTexture(renderer, "../images/joueur.png");
+
+    char chemin[255];
+    snprintf(chemin, sizeof(chemin), "../images/%s", joueur.skin);
+    SDL_Texture* texturejoueur = IMG_LoadTexture(renderer, chemin);
+
     SDL_Texture* texturefond = IMG_LoadTexture(renderer, "../images/fond.png");
     SDL_Texture* texturescore = IMG_LoadTexture(renderer, "../images/brique1.png");
 
-    if (!texturejoueur || !texturefond) {
+    if (!texturejoueur || !texturefond || !texturescore) {
         fprintf(stderr, "Erreur de chargement des textures : %s\n", IMG_GetError());
     }
     TTF_Font* font = TTF_OpenFont("../font/OpenSans-VariableFont_wdth,wght.ttf", 24);
@@ -145,9 +151,15 @@ void afficher_fond(SDL_Renderer *renderer, joueur joueur){
 }
 
 void afficherBalle(SDL_Renderer *renderer, balle balle, int taille){
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    SDL_Rect textureBalle = {balle.balle_x, balle.balle_y, taille, taille};
-    SDL_RenderFillRect(renderer, &textureBalle);
+    char chemin[255];
+    snprintf(chemin, sizeof(chemin), "../images/%s", balle.skin);
+    SDL_Texture* textureballe = IMG_LoadTexture(renderer, chemin);
+    if (!textureballe) {
+        fprintf(stderr, "Erreur de chargement des textures : %s\n", IMG_GetError());
+    }
+    SDL_Rect image_balle = {balle.balle_x, balle.balle_y, taille, taille};
+    SDL_RenderCopy(renderer, textureballe, NULL, &image_balle);
+    SDL_DestroyTexture(textureballe);
 }
 
 void affichierCarte(int** carte, int taille, SDL_Renderer *renderer, joueur joueur) {
@@ -527,11 +539,11 @@ void degat_joueur(joueur *joueur){
 }
 
 balle deplacement(balle balle, int** carte, int taille, joueur *joueur){
-    if (balle.balle_x == WINDOW_X || balle.balle_x == 0){
+    if (balle.balle_x >= WINDOW_X || balle.balle_x <= 0){
         balle.balle_dx *= -1;
-    } else if (balle.balle_y == 0) {
+    } else if (balle.balle_y <= 0) {
         balle.balle_dy *= -1;
-    } else if (balle.balle_y > WINDOW_Y - 25 && balle.balle_x > joueur->x && balle.balle_x < joueur->x + joueur->taille) { //colision avec le joueur
+    } else if (balle.balle_y > WINDOW_Y - 40 && balle.balle_x > joueur->x && balle.balle_x < joueur->x + joueur->taille) { //colision avec le joueur
         balle.balle_dy *= -1;
     }else if (balle.balle_y >=  WINDOW_Y) {
         balle.balle_x = WINDOW_X /2;
@@ -647,10 +659,11 @@ void game() {
     balle balle1;
     balle1.balle_x = WINDOW_X/2;
     balle1.balle_y = 200;
-    balle1.vitesse = 2;
+    balle1.vitesse = 3;
     balle1.balle_dx = balle1.vitesse;
     balle1.balle_dy = balle1.vitesse;
     balle1.degats = 1;
+    balle1.skin = "balle1.png";
     balles[0] = balle1;
 
     joueur joueur;
@@ -660,6 +673,7 @@ void game() {
     joueur.vitesse = 7;
     joueur.taille = 75;
     joueur.score = 0;
+    joueur.skin = "joueur.png";
     char* option[] = {"creer une carte", "charger une carte","Paremetre des bonus","Menu Adversaire"};
     int menuPrincipal = fen_QCM(option, 4, "");
     if (menuPrincipal == 0){
