@@ -769,5 +769,3 @@ int main(int argc, char *argv[]) {
     game();
     return 0;
 }
-
-//test
