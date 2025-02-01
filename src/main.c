@@ -31,6 +31,7 @@ typedef struct {
     int vitesse;
     int vie;
     double temps;
+    int score;
 } joueur;
 
 void afficherTexte(SDL_Renderer* renderer, const char* texte, TTF_Font* font, SDL_Color color, int x, int y) {
@@ -105,26 +106,41 @@ int** initialisationCarte(int taille){
 }
 
 void afficher_fond(SDL_Renderer *renderer, joueur joueur){
+    SDL_RenderClear(renderer);
     SDL_Texture* texturejoueur = IMG_LoadTexture(renderer, "../images/joueur.png");
     SDL_Texture* texturefond = IMG_LoadTexture(renderer, "../images/fond.png");
+    SDL_Texture* texturescore = IMG_LoadTexture(renderer, "../images/brique1.png");
 
     if (!texturejoueur || !texturefond) {
         fprintf(stderr, "Erreur de chargement des textures : %s\n", IMG_GetError());
     }
     TTF_Font* font = TTF_OpenFont("../font/OpenSans-VariableFont_wdth,wght.ttf", 24);
 
-    SDL_Rect vie = {WINDOW_X/10, WINDOW_Y/10, 75, 20};
-    SDL_RenderCopy(renderer, texturejoueur, NULL, &vie);
 
     SDL_Rect fond = {0, 0, WINDOW_X, WINDOW_Y};
     SDL_RenderCopy(renderer, texturefond, NULL, &fond);
 
+
+    SDL_Rect vie = {WINDOW_X*1.05, WINDOW_Y/10, 75, 20};
+    SDL_RenderCopy(renderer, texturejoueur, NULL, &vie);
+
     SDL_Color blanc = {255, 255, 255, 255};
     char str_vie[10];
     snprintf(str_vie, sizeof(str_vie), "%d", joueur.vie);
-    afficherTexte(renderer, str_vie, font, blanc, WINDOW_X / 12, WINDOW_Y / 12);
+    afficherTexte(renderer, str_vie, font, blanc, WINDOW_X*1.025, WINDOW_Y / 10);
+
+
+    SDL_Rect score = {WINDOW_X*1.1, WINDOW_Y/6, 40, 20};
+    SDL_RenderCopy(renderer, texturescore, NULL, &score);
+
+    char str_score[10];
+    snprintf(str_score, sizeof(str_score), "%03d", joueur.score);
+    afficherTexte(renderer, str_score, font, blanc, WINDOW_X*1.025, WINDOW_Y / 6-5);
+
+
     SDL_DestroyTexture(texturejoueur);
     SDL_DestroyTexture(texturefond);
+    SDL_DestroyTexture(texturescore);
     TTF_CloseFont(font);
 }
 
@@ -502,20 +518,20 @@ char* choixCarte(){
     return cartes[fen_QCM(cartes, count, "choix de la map")];
 }
 
-void degat_joueur(joueur joueur){
-    if (joueur.vie == 1){
+void degat_joueur(joueur *joueur){
+    if (joueur->vie == 1){
         game();
     } else {
-        joueur.vie -= 1;
+        joueur->vie -= 1;
     }
 }
 
-balle deplacement(balle balle, int** carte, int taille, joueur joueur){
+balle deplacement(balle balle, int** carte, int taille, joueur *joueur){
     if (balle.balle_x == WINDOW_X || balle.balle_x == 0){
         balle.balle_dx *= -1;
     } else if (balle.balle_y == 0) {
         balle.balle_dy *= -1;
-    } else if (balle.balle_y > WINDOW_Y - 25 && balle.balle_x > joueur.x && balle.balle_x < joueur.x + joueur.taille) { //colision avec le joueur
+    } else if (balle.balle_y > WINDOW_Y - 25 && balle.balle_x > joueur->x && balle.balle_x < joueur->x + joueur->taille) { //colision avec le joueur
         balle.balle_dy *= -1;
     }else if (balle.balle_y >=  WINDOW_Y) {
         balle.balle_x = WINDOW_X /2;
@@ -529,6 +545,7 @@ balle deplacement(balle balle, int** carte, int taille, joueur joueur){
             balle.balle_dy *= -1;
             carte[balle.balle_y / (WINDOW_Y / taille)][balle.balle_x / (WINDOW_X / taille)] -= balle.degats; //colision avec une brique
         }
+        joueur->score +=1;
     }
     balle.balle_x += balle.balle_dx;
     balle.balle_y += balle.balle_dy;
@@ -642,6 +659,7 @@ void game() {
     joueur.vie = 1;
     joueur.vitesse = 7;
     joueur.taille = 75;
+    joueur.score = 0;
     char* option[] = {"creer une carte", "charger une carte","Paremetre des bonus","Menu Adversaire"};
     int menuPrincipal = fen_QCM(option, 4, "");
     if (menuPrincipal == 0){
@@ -675,7 +693,7 @@ void game() {
             afficher_fond(renderer, joueur);
             affichierCarte(carte, taille, renderer, joueur);
             for(int i = 0; i<nb_balles;i++){
-                balles[i] = deplacement(balles[i], carte, taille, joueur);
+                balles[i] = deplacement(balles[i], carte, taille, &joueur);
                 afficherBalle(renderer, balles[i], taille);
             }
             SDL_RenderPresent(renderer);
@@ -719,7 +737,7 @@ void game() {
                 affichierCarte(carte, taille, renderer, joueur);
                 afficher_fond(renderer, joueur);
                 for(int i = 0; i<nb_balles;i++){
-                    balles[i] = deplacement(balles[i], carte, taille, joueur);
+                    balles[i] = deplacement(balles[i], carte, taille, &joueur);
                     afficherBalle(renderer, balles[i], taille);
                 }
                 SDL_RenderPresent(renderer);
