@@ -390,6 +390,88 @@ int fen_QCM(char* texte[], int taille, char* nom) {
     }
 }
 
+
+char* fen_QCM2(char* texte[], int taille, char* nom, int largeur_image, int longueur_image) {
+    SDL_Window* window = SDL_CreateWindow(nom,SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,WINDOW_Y, 400,SDL_WINDOW_SHOWN);
+    if (!window) {
+        fprintf(stderr, "Erreur de création de la fenêtre: %s\n", SDL_GetError());
+        SDL_Quit();
+        return false;
+    }
+    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    if (!renderer) {
+        fprintf(stderr, "Erreur de création du renderer: %s\n", SDL_GetError());
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return false;
+    }
+    TTF_Font* font = TTF_OpenFont("../font/OpenSans-VariableFont_wdth,wght.ttf", 24);
+
+    SDL_SetRenderDrawColor(renderer, 192, 192, 192, 255);
+    SDL_RenderClear(renderer);
+    char chemin[255];
+    for(int i = 0; i < taille; i++){
+        snprintf(chemin, sizeof(chemin), "../images/%s", texte[i]);
+        SDL_Texture* texture = IMG_LoadTexture(renderer, chemin);
+        if (!texture) {
+            fprintf(stderr, "Erreur de chargement des textures : %s\n", IMG_GetError());
+        }
+        SDL_Rect image = {(WINDOW_Y / taille) * i, 300, largeur_image, longueur_image};
+        SDL_RenderCopy(renderer, texture, NULL, &image);
+        SDL_DestroyTexture(texture);
+    }
+    //SDL_Rect boutonOui = {150, 200, 100, 50}; // x, y, largeur, hauteur
+    //SDL_Rect boutonNon = {350, 200, 100, 50};
+
+    // Couleur des boutons (bleu)
+    //SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255); // Bleu
+    //SDL_RenderFillRect(renderer, &boutonOui);
+    //SDL_RenderFillRect(renderer, &boutonNon);
+    // Texte pour les boutons et la question
+    SDL_Color blanc = {255, 255, 255, 255}; // Couleur blanche
+    //afficherTexte(renderer, "Oui", font, blanc, boutonOui.x + 30, boutonOui.y + 10);
+    //afficherTexte(renderer, "Non", font, blanc, boutonNon.x + 30, boutonNon.y + 10);
+    afficherTexte(renderer, nom, font, blanc, 100, 100);
+
+    // Couleur du texte (à simuler ici, SDL ne gère pas directement le texte)
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // Blanc
+    //SDL_RenderDrawRect(renderer, &boutonOui); // Bordures blanches
+    //SDL_RenderDrawRect(renderer, &boutonNon);
+
+    SDL_Rect bouton = {WINDOW_X/20, WINDOW_Y/30, WINDOW_Y/20, WINDOW_Y/20};
+    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+    SDL_RenderFillRect(renderer, &bouton);
+    SDL_RenderPresent(renderer);
+
+    SDL_Event event;
+    while (true) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                TTF_CloseFont(font);
+                SDL_DestroyRenderer(renderer);
+                SDL_DestroyWindow(window);
+                return false;
+            }
+            if (event.type == SDL_MOUSEBUTTONDOWN) {
+                int x = event.button.x;
+                int y = event.button.y;
+
+                if (y >= 300 && y <= 350) {
+                    TTF_CloseFont(font);
+                    SDL_DestroyRenderer(renderer);
+                    SDL_DestroyWindow(window);
+                    return texte[(x / (WINDOW_Y / taille))];
+                } else if (x >= WINDOW_X/20 && x <= WINDOW_X/20 + WINDOW_Y/20 && y >= WINDOW_Y/20 && y <= WINDOW_Y/20 + WINDOW_Y/20){
+                    SDL_DestroyRenderer(renderer);
+                    SDL_DestroyWindow(window);
+                    SDL_Quit();
+                    game();
+                }
+            }
+        }
+    }
+}
+
 void CreatCarte(int taille, SDL_Renderer *renderer, joueur joueur){
     int** carte = initialisationCarte(taille);
     char* nom = (char*)malloc(256);
@@ -568,61 +650,6 @@ void AugJoueur() {
 
 }
 
-void OuvrirParametres(SDL_Renderer *renderer) {
-    SDL_Event event;
-    bool encours = true;
-
-    TTF_Font* font = TTF_OpenFont("../font/OpenSans-VariableFont_wdth,wght.ttf", 24);
-    if (!font) {
-        fprintf(stderr, "Erreur de chargement de la police: %s\n", TTF_GetError());
-        return;
-    }
-
-    while (encours) {
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT || (event.type == SDL_KEYDOWN && event.key.keysym.scancode == SDL_SCANCODE_ESCAPE)) {
-                encours = false;
-            }
-            if (event.type == SDL_MOUSEBUTTONDOWN) {
-                int x = event.button.x;
-                int y = event.button.y;
-
-                if (y >= 150 && y <= 200) {
-                    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-                    SDL_RenderClear(renderer);
-                    SDL_Color noir = {0, 0, 0, 255};
-                    afficherTexte(renderer, "Parametres", font, noir, 300, 100);
-                    afficherTexte(renderer, "Degats X2", font, noir, 300, 150);
-                    afficherTexte(renderer, "Balle X2", font, noir, 300, 200);
-                    afficherTexte(renderer, "Allongement de la barre", font, noir, 300, 250);
-                    char message[256];
-                    snprintf(message, sizeof(message), "Degats de la balle : %d");
-                    afficherTexte(renderer, message, font, noir, 300, 350);
-                    SDL_RenderPresent(renderer);
-                    SDL_Delay(2000);
-                } else if (y >= 200 && y <= 250) {
-                    printf("Balle X2 activee !\n");
-                } else if (y >= 250 && y <= 300) {
-
-                    printf("Barre allongee !\n");
-                }
-            }
-        }
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-        SDL_RenderClear(renderer);
-
-        SDL_Color noir = {0, 0, 0, 255};
-        afficherTexte(renderer, "Degats X2", font, noir, 300, 150);
-        afficherTexte(renderer, "Balle X2", font, noir, 300, 200);
-        afficherTexte(renderer, "Allongement de la barre", font, noir, 300, 250);
-        afficherTexte(renderer, "retour", font, noir, 300, 250);
-
-        SDL_RenderPresent(renderer);
-    }
-
-    TTF_CloseFont(font);
-}
-
 void game() {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         fprintf(stderr, "Erreur d'initialisation de SDL: %s\n", SDL_GetError());
@@ -718,7 +745,20 @@ void game() {
         SDL_DestroyWindow(window);
         SDL_Quit();
     }else if(menuPrincipal == 2) {
-        OuvrirParametres(renderer);
+        option[0] = "peronnaliser la balle";
+        option[1] = "peronnaliser le joueur";
+        switch (fen_QCM(option, 2, "paramètres")){
+            case 0 :
+                option[0] = "balle1.png";
+                option[1] = "balle2.png";
+                fen_QCM2(option, 2, "choix balle", 50, 50);
+                break;
+            case 1 :
+                option[0] = "joueur1.png";
+                option[1] = "joueur2.png";
+                fen_QCM2(option, 2, "choix joueur", 100, 30);
+                break;
+        }
     }else if(menuPrincipal == 3) {
         int menuAdversaire = fen_QCM(option, 2, "");
         if (menuAdversaire == 0) {
@@ -770,3 +810,4 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 //test
+
