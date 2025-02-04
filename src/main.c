@@ -1,5 +1,3 @@
-
-
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
 #include <stdio.h>
@@ -13,7 +11,7 @@
 #define WINDOW_X 800
 #define WINDOW_Y 600
 
-void game();
+void menuPrincipal();
 
 typedef struct {
     int balle_x;
@@ -163,7 +161,9 @@ void afficherBalle(SDL_Renderer *renderer, balle balle, int taille){
 }
 
 void affichierCarte(int** carte, int taille, SDL_Renderer *renderer, joueur joueur) {
-
+    clock_t start_time,end_time;
+    double elasped_time = 0.0;
+    start_time=clock();
     SDL_Texture* texturejoueur = IMG_LoadTexture(renderer, "../images/joueur.png");
 
     SDL_Texture* textureBrique1 = IMG_LoadTexture(renderer, "../images/brique1.png");
@@ -383,7 +383,7 @@ int fen_QCM(char* texte[], int taille, char* nom) {
                     SDL_DestroyRenderer(renderer);
                     SDL_DestroyWindow(window);
                     SDL_Quit();
-                    game();
+                    menuPrincipal();
                 }
             }
         }
@@ -465,7 +465,7 @@ char* fen_QCM2(char* texte[], int taille, char* nom, int largeur_image, int long
                     SDL_DestroyRenderer(renderer);
                     SDL_DestroyWindow(window);
                     SDL_Quit();
-                    game();
+                    menuPrincipal();
                 }
             }
         }
@@ -527,17 +527,11 @@ void CreatCarteAdversaire(int taille, SDL_Renderer *renderer, joueur joueur) {
             } else if (event.type == SDL_KEYDOWN) {
                 if (event.key.keysym.sym == SDLK_ESCAPE) {
                     saisie = 0;
-
-                    // Génére
-                    // r un nom de fichier aléatoire
                     int id = rand();
-                    snprintf(nom, 256, "text%d", id); // Pas d'extension en dur
-
-                    // Sauvegarder la carte
+                    snprintf(nom, 256, "text%d", id);
                     saveCarte(carte, taille, nom);
                     char chemin[256];
                     snprintf(chemin, sizeof(chemin), "../cartes/%s.txt", nom);
-                    // Vérifier que le fichier existe avant de le charger
                     FILE* testFichier = fopen(chemin, "r");
                     if (testFichier == NULL) {
                         fprintf(stderr, "Erreur : le fichier %s n'existe pas ou ne peut pas être ouvert.\n", nom);
@@ -545,36 +539,26 @@ void CreatCarteAdversaire(int taille, SDL_Renderer *renderer, joueur joueur) {
                         return;
                     }
                     fclose(testFichier);
-
-                    // Charger la carte sauvegardée
                     int** carteChargee = chargeCarteDansTab(chemin, taille);
                     if (carteChargee == NULL) {
                         fprintf(stderr, "Erreur : impossible de charger la carte.\n");
                         free(chemin);
                         return;
                     }
-
-                    // Afficher la carte chargée
                     affichierCarte(carteChargee, taille, renderer, joueur);
                     SDL_RenderPresent(renderer);
 
-                    // Libérer la carte chargée
                     libererCarte(carteChargee, taille);
 
-                    // Lancer le jeu
-                    game();
+                    menuPrincipal();
                     return;
                 }
             }
         }
-
-        // Affichage de la carte en cours de création
         affichierCarte(carte, taille, renderer, joueur);
         SDL_RenderPresent(renderer);
         SDL_Delay(200);
     }
-
-    // Libérer la carte et le nom si l'utilisateur quitte sans sauvegarder
     libererCarte(carte, taille);
     free(nom);
 }
@@ -614,7 +598,7 @@ char* choixCarte(){
 
 void degat_joueur(joueur *joueur){
     if (joueur->vie == 1){
-        game();
+        menuPrincipal();
     } else {
         joueur->vie -= 1;
     }
@@ -650,7 +634,8 @@ void AugJoueur() {
 
 }
 
-void game() {
+void menuPrincipal() {
+
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         fprintf(stderr, "Erreur d'initialisation de SDL: %s\n", SDL_GetError());
         exit(EXIT_FAILURE);
@@ -806,8 +791,6 @@ void game() {
 }
 
 int main(int argc, char *argv[]) {
-    game();
+    menuPrincipal();
     return 0;
 }
-//test
-
