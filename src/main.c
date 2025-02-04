@@ -50,6 +50,24 @@ void afficherTexte(SDL_Renderer* renderer, const char* texte, TTF_Font* font, SD
 
 }
 
+void afficherChiffre(SDL_Renderer* renderer, double chiffre, TTF_Font* font, SDL_Color color, int x, int y) {
+    char temps[32];
+    snprintf(temps, sizeof(temps), "%.3lf", chiffre);
+    SDL_Surface* surface = TTF_RenderText_Solid(font, temps, color);
+    if (!surface) {
+        return;
+    }
+
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+
+    SDL_Rect coord = {x, y, surface->w, surface->h};
+    SDL_RenderCopy(renderer, texture, NULL, &coord);
+
+    SDL_FreeSurface(surface);
+    SDL_DestroyTexture(texture);
+
+}
+
 
 
 int** chargeCarteDansTab(char* nom, int taille) {
@@ -114,6 +132,7 @@ void afficher_fond(SDL_Renderer *renderer, joueur joueur){
 
     SDL_Texture* texturefond = IMG_LoadTexture(renderer, "../images/fond.png");
     SDL_Texture* texturescore = IMG_LoadTexture(renderer, "../images/brique1.png");
+    SDL_Texture* texturehorloge = IMG_LoadTexture(renderer, "../images/horloge.png");
 
     if (!texturejoueur || !texturefond || !texturescore) {
         fprintf(stderr, "Erreur de chargement des textures : %s\n", IMG_GetError());
@@ -128,11 +147,22 @@ void afficher_fond(SDL_Renderer *renderer, joueur joueur){
     SDL_Rect vie = {WINDOW_X*1.05, WINDOW_Y/10, 75, 20};
     SDL_RenderCopy(renderer, texturejoueur, NULL, &vie);
 
+    SDL_Rect Horloge = {WINDOW_X*1.125, WINDOW_Y/4, 40, 40};
+    SDL_RenderCopy(renderer, texturehorloge, NULL, &Horloge);
+
+
+
+
     SDL_Color blanc = {255, 255, 255, 255};
     char str_vie[10];
     snprintf(str_vie, sizeof(str_vie), "%d", joueur.vie);
     afficherTexte(renderer, str_vie, font, blanc, WINDOW_X*1.025, WINDOW_Y / 10);
 
+    int minutes = joueur.temps / 60;
+    int seconds = (int)joueur.temps % 60;
+    char time_str[10];
+    snprintf(time_str, sizeof(time_str), "%02d:%02d", minutes, seconds);
+    afficherTexte(renderer, time_str,font,blanc,WINDOW_X*1.025,WINDOW_Y/4);
 
     SDL_Rect score = {WINDOW_X*1.1, WINDOW_Y/6, 40, 20};
     SDL_RenderCopy(renderer, texturescore, NULL, &score);
@@ -161,9 +191,7 @@ void afficherBalle(SDL_Renderer *renderer, balle balle, int taille){
 }
 
 void affichierCarte(int** carte, int taille, SDL_Renderer *renderer, joueur joueur) {
-    //clock_t start_time,end_time;
-    //double elasped_time = 0.0;
-    //start_time=clock();
+
     SDL_Texture* texturejoueur = IMG_LoadTexture(renderer, "../images/joueur1.png");
 
     SDL_Texture* textureBrique1 = IMG_LoadTexture(renderer, "../images/brique1.png");
@@ -601,7 +629,9 @@ balle deplacement(balle balle, int** carte, int taille, joueur *joueur){
 }
 
 
-void game(SDL_Window *window, SDL_Renderer *renderer, joueur joueur, balle balle, int taille, int ** carte){
+double game(SDL_Window *window, SDL_Renderer *renderer, joueur joueur, balle balle, int taille, int ** carte){
+    clock_t begin = clock();
+    double testTemps = 0.0;
     int saisie = 1;
     SDL_Event event;
     while (saisie) {
@@ -622,8 +652,9 @@ void game(SDL_Window *window, SDL_Renderer *renderer, joueur joueur, balle balle
             } else if (joueur.x > WINDOW_X - 75) {
                 joueur.x = WINDOW_X - 75;
             }
-
         }
+        clock_t current_time = clock();
+        joueur.temps = ((double)(current_time - begin)) / CLOCKS_PER_SEC;
         afficher_fond(renderer, joueur);
         affichierCarte(carte, taille, renderer, joueur);
         balle = deplacement(balle, carte, taille, &joueur);
@@ -635,6 +666,9 @@ void game(SDL_Window *window, SDL_Renderer *renderer, joueur joueur, balle balle
         SDL_Delay(10);
     }
     SDL_Delay(200);
+    clock_t end = clock();
+    testTemps = ((double)(end - begin)) / CLOCKS_PER_SEC;
+    return testTemps;
 }
 
 
@@ -702,7 +736,7 @@ void menuPrincipal() {
     }else if(choixMenu == 2) {
         option[0] = "peronnaliser la balle";
         option[1] = "peronnaliser le joueur";
-        switch (fen_QCM(option, 2, "paramètres")){
+        switch (fen_QCM(option, 2, "parametres")){
             case 0 :
                 option[0] = "balle1.png";
                 option[1] = "balle2.png";
@@ -718,10 +752,21 @@ void menuPrincipal() {
         int menuAdversaire = fen_QCM(option, 2, "");
         if (menuAdversaire == 0) {
             int ** carte;
+            char* nom[255];
             carte = CreatCarteAdversaire(20, renderer, joueur);
-            game(window, renderer, joueur, balle1, taille, carte);
+            double tempsj1 = game(window, renderer, joueur, balle1, taille, carte);
             carte = CreatCarteAdversaire(20, renderer, joueur);
-            game(window, renderer, joueur, balle1, taille, carte);
+            double tempsj2 = game(window, renderer, joueur, balle1, taille, carte);
+            if(tempsj1 < tempsj2) {
+                snprintf(nom, sizeof(nom), "Le joueur 1 gagne avec le temps %.3lf s",tempsj1);
+                fen_QCM("", 0,nom);
+            }else if(tempsj2 < tempsj1) {
+                snprintf(nom, sizeof(nom), "Le joueur 2 gagne avec le temps %.3lf s",  tempsj2);
+                fen_QCM("", 0, nom);
+            }else if(tempsj1 = tempsj2) {
+                snprintf(nom, sizeof(nom), "les deux joueurs sont ex aequo %.3lf s ",  tempsj1);
+                fen_QCM("", 0, nom);
+            }
             SDL_DestroyRenderer(renderer);
             SDL_DestroyWindow(window);
             SDL_Quit();
