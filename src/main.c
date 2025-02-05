@@ -14,6 +14,21 @@
 void menuPrincipal();
 
 typedef struct {
+    char *nom;
+    int bonus_x;
+    int bonus_y;
+    int bonus_dx;
+    int bonus_dy;
+    int degats;
+    int vitesse_joueur;
+    int vitesse_balle;
+    int vie_joueur;
+    int score;
+    char* skin;
+} bonus;
+
+
+typedef struct {
     int balle_x;
     int balle_y;
     int balle_dx;
@@ -34,8 +49,28 @@ typedef struct {
     char* skin;
 } joueur;
 
+
+
 void afficherTexte(SDL_Renderer* renderer, const char* texte, TTF_Font* font, SDL_Color color, int x, int y) {
     SDL_Surface* surface = TTF_RenderText_Solid(font, texte, color);
+    if (!surface) {
+        return;
+    }
+
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+
+    SDL_Rect coord = {x, y, surface->w, surface->h};
+    SDL_RenderCopy(renderer, texture, NULL, &coord);
+
+    SDL_FreeSurface(surface);
+    SDL_DestroyTexture(texture);
+
+}
+
+void afficherChiffre(SDL_Renderer* renderer, double chiffre, TTF_Font* font, SDL_Color color, int x, int y) {
+    char temps[32];
+    snprintf(temps, sizeof(temps), "%.3lf", chiffre);
+    SDL_Surface* surface = TTF_RenderText_Solid(font, temps, color);
     if (!surface) {
         return;
     }
@@ -105,6 +140,53 @@ int** initialisationCarte(int taille){
     return carte;
 }
 
+int** initialisationCarte1vs1(int taille) {
+    int** carte = (int**)malloc(taille * sizeof(int*));
+    if (carte == NULL) {
+        fprintf(stderr, "Erreur d'allocation mémoire pour le tableau.\n");
+        return NULL;
+    }
+
+    for (int i = 0; i < taille; i++) {
+        carte[i] = (int*)malloc(taille * sizeof(int));
+        if (carte[i] == NULL) {
+            fprintf(stderr, "Erreur d'allocation mémoire pour la ligne %d.\n", i);
+            for (int j = 0; j < i; j++) {
+                free(carte[j]);
+            }
+            free(carte);
+            return NULL;
+        }
+    }
+
+    int colonne_milieu = taille / 2; // Trouver la colonne centrale
+
+    for (int i = 0; i < taille; i++) {
+        for (int j = 0; j < taille; j++) {
+            if (j == colonne_milieu) {
+                carte[i][j] = 5; // Mur central de séparation
+            } else {
+                carte[i][j] = 0; // Autres cases initialisées à 0
+            }
+        }
+    }
+    return carte;
+}
+
+
+void afficherBonus(SDL_Renderer *renderer, bonus* tabonus, int nbonus, int taille){
+    char chemin[255];
+    for (int i = 0; i < nbonus; i++){
+        snprintf(chemin, sizeof(chemin), "../images/%s", tabonus[i].skin);
+        SDL_Texture* texturebonus = IMG_LoadTexture(renderer, chemin);
+        if (!texturebonus) {
+            fprintf(stderr, "Erreur de chargement des textures : %s\n", IMG_GetError());
+        }
+        SDL_Rect bonus = {tabonus[i].bonus_x, tabonus[i].bonus_y, taille, taille};
+        SDL_RenderCopy(renderer, texturebonus, NULL, &bonus);
+    }
+}
+
 void afficher_fond(SDL_Renderer *renderer, joueur joueur){
     SDL_RenderClear(renderer);
 
@@ -114,6 +196,7 @@ void afficher_fond(SDL_Renderer *renderer, joueur joueur){
 
     SDL_Texture* texturefond = IMG_LoadTexture(renderer, "../images/fond.png");
     SDL_Texture* texturescore = IMG_LoadTexture(renderer, "../images/brique1.png");
+    SDL_Texture* texturehorloge = IMG_LoadTexture(renderer, "../images/horloge.png");
 
     if (!texturejoueur || !texturefond || !texturescore) {
         fprintf(stderr, "Erreur de chargement des textures : %s\n", IMG_GetError());
@@ -128,10 +211,19 @@ void afficher_fond(SDL_Renderer *renderer, joueur joueur){
     SDL_Rect vie = {WINDOW_X*1.05, WINDOW_Y/10, 75, 20};
     SDL_RenderCopy(renderer, texturejoueur, NULL, &vie);
 
+    SDL_Rect Horloge = {WINDOW_X*1.125, WINDOW_Y/4, 40, 40};
+    SDL_RenderCopy(renderer, texturehorloge, NULL, &Horloge);
+
     SDL_Color blanc = {255, 255, 255, 255};
     char str_vie[10];
     snprintf(str_vie, sizeof(str_vie), "%d", joueur.vie);
     afficherTexte(renderer, str_vie, font, blanc, WINDOW_X*1.025, WINDOW_Y / 10);
+
+    int minutes = joueur.temps / 60;
+    int seconds = (int)joueur.temps % 60;
+    char time_str[10];
+    snprintf(time_str, sizeof(time_str), "%02d:%02d", minutes, seconds);
+    afficherTexte(renderer, time_str,font,blanc,WINDOW_X*1.025,WINDOW_Y/4);
 
 
     SDL_Rect score = {WINDOW_X*1.1, WINDOW_Y/6, 40, 20};
@@ -160,31 +252,68 @@ void afficherBalle(SDL_Renderer *renderer, balle balle, int taille){
     SDL_DestroyTexture(textureballe);
 }
 
+
+void afficherBalle1vs1(SDL_Renderer *renderer, balle balle1, balle balle2, int taille) {
+    char chemin[255];
+    printf("test22");
+    // Charger la texture pour balle1
+    snprintf(chemin, sizeof(chemin), "../images/%s",balle1.skin);
+    SDL_Texture* textureballe1 = IMG_LoadTexture(renderer, chemin);
+    if (!textureballe1) {
+        fprintf(stderr, "Erreur de chargement de la texture pour balle1 : %s\n", IMG_GetError());
+    }
+
+    // Charger la texture pour balle2
+    snprintf(chemin, sizeof(chemin), "../images/%s", balle2.skin);
+    SDL_Texture* textureballe2 = IMG_LoadTexture(renderer, chemin);
+    if (!textureballe2) {
+        fprintf(stderr, "Erreur de chargement de la texture pour balle2 : %s\n", IMG_GetError());
+    }
+
+    // Afficher balle1
+    SDL_Rect image_balle1 = {balle1.balle_x, balle1.balle_y, taille, taille};
+    SDL_RenderCopy(renderer, textureballe1, NULL, &image_balle1);
+
+    // Afficher balle2
+    SDL_Rect image_balle2 = {balle2.balle_x, balle2.balle_y, taille, taille};
+    SDL_RenderCopy(renderer, textureballe2, NULL, &image_balle2);
+
+    // Détruire les textures pour libérer la mémoire
+    SDL_DestroyTexture(textureballe1);
+    SDL_DestroyTexture(textureballe2);
+}
+
 void affichierCarte(int** carte, int taille, SDL_Renderer *renderer, joueur joueur) {
-    //clock_t start_time,end_time;
-    //double elasped_time = 0.0;
-    //start_time=clock();
-    SDL_Texture* texturejoueur = IMG_LoadTexture(renderer, "../images/joueur1.png");
+    char chemin[255];
+    snprintf(chemin, sizeof(chemin), "../images/%s", joueur.skin);
+    SDL_Texture* texturejoueur = IMG_LoadTexture(renderer, chemin);
 
     SDL_Texture* textureBrique1 = IMG_LoadTexture(renderer, "../images/brique1.png");
     SDL_Texture* textureBrique2 = IMG_LoadTexture(renderer, "../images/brique2.png");
     SDL_Texture* textureBrique3 = IMG_LoadTexture(renderer, "../images/brique3.png");
+    SDL_Texture* textureBrique4 = IMG_LoadTexture(renderer, "../images/brique4.png");
+    SDL_Texture* textureMur = IMG_LoadTexture(renderer, "../images/mur.png");
+    SDL_Texture* textureBriqueTransparente = IMG_LoadTexture(renderer, "../images/brique_transparente.png"); // Texture transparente
 
-    if (!textureBrique1 || !textureBrique2 || !textureBrique3 || !texturejoueur) {
+    if (!textureBrique1 || !textureBrique2 || !textureBrique3 || !textureBrique4 || !textureMur || !texturejoueur || !textureBriqueTransparente) {
         fprintf(stderr, "Erreur de chargement des textures : %s\n", IMG_GetError());
     }
+
     for (int i = 0; i < taille; i++) {
         for (int j = 0; j < taille; j++) {
             SDL_Rect coord = {j * (WINDOW_X / taille), i * (WINDOW_Y / taille), WINDOW_X / taille, WINDOW_Y / taille};
-
             if (carte[i][j] == 1) {
                 SDL_RenderCopy(renderer, textureBrique1, NULL, &coord); // Texture pour les briques de type 1
-            }
-            else if (carte[i][j] == 2) {
+            } else if (carte[i][j] == 2) {
                 SDL_RenderCopy(renderer, textureBrique2, NULL, &coord); // Texture pour les briques de type 2
-            }
-            else if (carte[i][j] == 3) {
+            } else if (carte[i][j] == 3) {
                 SDL_RenderCopy(renderer, textureBrique3, NULL, &coord); // Texture pour les briques de type 3
+            }else if (carte[i][j] == 4) {
+                SDL_RenderCopy(renderer, textureBrique4, NULL, &coord); // Texture pour les briques de type 4
+            }else if (carte[i][j] == 5) {
+                SDL_RenderCopy(renderer, textureMur, NULL, &coord); // Texture pour les briques de type 4
+            } else {
+                SDL_RenderCopy(renderer, textureBriqueTransparente, NULL, &coord);
             }
         }
     }
@@ -196,7 +325,85 @@ void affichierCarte(int** carte, int taille, SDL_Renderer *renderer, joueur joue
     SDL_DestroyTexture(textureBrique1);
     SDL_DestroyTexture(textureBrique2);
     SDL_DestroyTexture(textureBrique3);
+    SDL_DestroyTexture(textureBrique4);
+    SDL_DestroyTexture(textureMur);
+    SDL_DestroyTexture(textureBriqueTransparente);
 }
+
+void affichierCarte1vs1(int** carte, int taille, SDL_Renderer *renderer, joueur joueur1, joueur joueur2) {
+    char chemin[255];
+    snprintf(chemin,sizeof(chemin),"../images/%s",joueur1.skin);
+    SDL_Texture* textureJoueur1 = IMG_LoadTexture(renderer, chemin);
+    snprintf(chemin,sizeof(chemin),"../images/%s",joueur2.skin);
+    SDL_Texture* textureJoueur2 = IMG_LoadTexture(renderer, chemin);
+
+
+    SDL_Texture* textureBrique1 = IMG_LoadTexture(renderer, "../images/brique1.png");
+    SDL_Texture* textureBrique2 = IMG_LoadTexture(renderer, "../images/brique2.png");
+    SDL_Texture* textureBrique3 = IMG_LoadTexture(renderer, "../images/brique3.png");
+    SDL_Texture* textureBrique4 = IMG_LoadTexture(renderer, "../images/brique4.png");
+    SDL_Texture* textureMur = IMG_LoadTexture(renderer, "../images/mur.png");
+    SDL_Texture* textureBriqueTransparente = IMG_LoadTexture(renderer, "../images/brique_transparente.png");
+
+    if (!textureJoueur1 || !textureJoueur2 || !textureBrique1 || !textureBrique2 || !textureBrique3 || !textureBrique4 || !textureMur || !textureBriqueTransparente) {
+        fprintf(stderr, "Erreur de chargement des textures : %s\n", IMG_GetError());
+    }
+
+    int miCarte = taille / 2; // La moitié de la carte (pour séparer les deux joueurs)
+
+    for (int i = 0; i < taille; i++) {
+        for (int j = 0; j < taille; j++) {
+            SDL_Rect coord = {j * (WINDOW_X / taille), i * (WINDOW_Y / taille), WINDOW_X / taille, WINDOW_Y / taille};
+
+            if (j < miCarte) {  // Partie gauche pour joueur1
+                if (carte[i][j] == 1) {
+                    SDL_RenderCopy(renderer, textureBrique1, NULL, &coord);
+                } else if (carte[i][j] == 2) {
+                    SDL_RenderCopy(renderer, textureBrique2, NULL, &coord);
+                } else if (carte[i][j] == 3) {
+                    SDL_RenderCopy(renderer, textureBrique3, NULL, &coord);
+                } else if (carte[i][j] == 4) {
+                    SDL_RenderCopy(renderer, textureBrique4, NULL, &coord);
+                }else if (carte[i][j] == 5) {
+                    SDL_RenderCopy(renderer, textureMur, NULL, &coord);
+                }else {
+                    SDL_RenderCopy(renderer, textureBriqueTransparente, NULL, &coord);
+                }
+            } else {  // Partie droite pour joueur2
+                if (carte[i][j] == 1) {
+                    SDL_RenderCopy(renderer, textureBrique1, NULL, &coord);
+                } else if (carte[i][j] == 2) {
+                    SDL_RenderCopy(renderer, textureBrique2, NULL, &coord);
+                } else if (carte[i][j] == 3) {
+                    SDL_RenderCopy(renderer, textureBrique3, NULL, &coord);
+                } else if (carte[i][j] == 4) {
+                    SDL_RenderCopy(renderer, textureBrique4, NULL, &coord);
+                } else if (carte[i][j] == 5) {
+                    SDL_RenderCopy(renderer, textureMur, NULL, &coord);
+                }else {
+                    SDL_RenderCopy(renderer, textureBriqueTransparente, NULL, &coord);
+                }
+            }
+        }
+    }
+
+    // Afficher les joueurs dans leur zone respective
+    SDL_Rect image_joueur1 = {joueur1.x, joueur1.y, 75, 20};
+    SDL_RenderCopy(renderer, textureJoueur1, NULL, &image_joueur1);
+
+    SDL_Rect image_joueur2 = {joueur2.x, joueur2.y, 75, 20};
+    SDL_RenderCopy(renderer, textureJoueur2, NULL, &image_joueur2);
+
+    SDL_DestroyTexture(textureJoueur1);
+    SDL_DestroyTexture(textureJoueur2);
+    SDL_DestroyTexture(textureBrique1);
+    SDL_DestroyTexture(textureBrique2);
+    SDL_DestroyTexture(textureBrique3);
+    SDL_DestroyTexture(textureBrique4);
+    SDL_DestroyTexture(textureMur);
+    SDL_DestroyTexture(textureBriqueTransparente);
+}
+
 
 void libererCarte(int** carte, int taille) {
     for (int i = 0; i < taille; i++) {
@@ -208,7 +415,7 @@ void libererCarte(int** carte, int taille) {
 int** ajoutBrique(int** carte, int taille){
     int mouseX, mouseY;
     SDL_GetMouseState(&mouseX, &mouseY);
-    carte[mouseY/(WINDOW_Y/taille)][mouseX/(WINDOW_X/taille)] = (carte[mouseY/(WINDOW_Y/taille)][mouseX/(WINDOW_X/taille)] + 1) % 4;
+    carte[mouseY/(WINDOW_Y/taille)][mouseX/(WINDOW_X/taille)] = (carte[mouseY/(WINDOW_Y/taille)][mouseX/(WINDOW_X/taille)] + 1) % 5;
     return carte;
 }
 
@@ -465,7 +672,6 @@ char* fen_QCM2(char* texte[], int taille, char* nom, int largeur_image, int long
                     SDL_DestroyRenderer(renderer);
                     SDL_DestroyWindow(window);
                     SDL_Quit();
-                    menuPrincipal();
                 }
             }
         }
@@ -507,7 +713,7 @@ void CreatCarte(int taille, SDL_Renderer *renderer, joueur joueur){
 }
 
 int ** CreatCarteAdversaire(int taille, SDL_Renderer *renderer, joueur joueur) {
-    int** carte = initialisationCarte(taille);
+    int** carte = initialisationCarte1vs1(taille);
     if (carte == NULL) {
         fprintf(stderr, "Erreur : impossible d'initialiser la carte.\n");
         exit(EXIT_FAILURE);
@@ -532,6 +738,37 @@ int ** CreatCarteAdversaire(int taille, SDL_Renderer *renderer, joueur joueur) {
             }
         }
         affichierCarte(carte, taille, renderer, joueur);
+        SDL_RenderPresent(renderer);
+        SDL_Delay(200);
+    }
+}
+
+int ** CreatCarte1vs1(int taille, SDL_Renderer *renderer, joueur joueur1,joueur joueur2) {
+    int** carte = initialisationCarte1vs1(taille);
+    if (carte == NULL) {
+        fprintf(stderr, "Erreur : impossible d'initialiser la carte.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    int saisie = 1;
+    SDL_Event event;
+    while (saisie) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                saisie = 0;
+            } else if (event.type == SDL_MOUSEBUTTONDOWN) {
+                if (event.button.button == SDL_BUTTON_LEFT) {
+                    carte = ajoutBrique(carte, taille);
+                }
+            } else if (event.type == SDL_KEYDOWN) {
+                if (event.key.keysym.sym == SDLK_ESCAPE) {
+                    saisie = 0;
+                    SDL_RenderPresent(renderer);
+                    return carte;
+                }
+            }
+        }
+        affichierCarte1vs1(carte, taille, renderer, joueur1,joueur2);
         SDL_RenderPresent(renderer);
         SDL_Delay(200);
     }
@@ -574,34 +811,268 @@ void degat_joueur(joueur *joueur){
     joueur->vie -= 1;
 }
 
-balle deplacement(balle balle, int** carte, int taille, joueur *joueur){
-    if (balle.balle_x >= WINDOW_X || balle.balle_x <= 0){
+
+bonus creer_bonus(int x, int y) {
+    // Liste des bonus possibles
+    bonus bonus_list[] = {
+            {
+                    .nom = "Bonus Vie",
+                    .degats = 0,
+                    .skin = "bonus_vie.png",
+                    .bonus_x = x,
+                    .bonus_y = y,
+                    .bonus_dx = 0,
+                    .bonus_dy = 4,
+                    .vie_joueur = 1,       // Ajoute 1 vie au joueur
+                    .vitesse_joueur = 0,
+                    .vitesse_balle = 0,
+                    .score = 0
+            },
+            {
+                    .nom = "Bonus Vitesse Balle",
+                    .degats = 0,
+                    .skin = "bonus_vitesse_balle.png",
+                    .bonus_x = x,
+                    .bonus_y = y,
+                    .bonus_dx = 0,
+                    .bonus_dy = 2,
+                    .vie_joueur = 0,
+                    .vitesse_joueur = 0,
+                    .vitesse_balle = 2,    // Augmente la vitesse de la balle
+                    .score = 0
+            },
+            {
+                    .nom = "Bonus Vitesse Joueur",
+                    .degats = 0,
+                    .skin = "bonus_vitesse_joueur.png",
+                    .bonus_x = x,
+                    .bonus_y = y,
+                    .bonus_dx = 0,
+                    .bonus_dy = 2,
+                    .vie_joueur = 0,
+                    .vitesse_joueur = 2,   // Augmente la vitesse du joueur
+                    .vitesse_balle = 0,
+                    .score = 0
+            },
+            {
+                    .nom = "Bonus Score",
+                    .degats = 0,
+                    .skin = "bonus_score.png",
+                    .bonus_x = x,
+                    .bonus_y = y,
+                    .bonus_dx = 0,
+                    .bonus_dy = 2,
+                    .vie_joueur = 0,
+                    .vitesse_joueur = 0,
+                    .vitesse_balle = 0,
+                    .score = 50            // Ajoute 50 points au score
+            },
+            {
+                    .nom = "Malus Score",
+                    .degats = 0,
+                    .skin = "malus_score.png",
+                    .bonus_x = x,
+                    .bonus_y = y,
+                    .bonus_dx = 0,
+                    .bonus_dy = 3,
+                    .vie_joueur = 0,
+                    .vitesse_joueur = 0,
+                    .vitesse_balle = 0,
+                    .score = -50            // retire 50 points au score
+            },
+            {
+                    .nom = "Bonus Super Balle",
+                    .degats = 2,           // Double les dégâts de la balle
+                    .skin = "bonus_super_balle.png",
+                    .bonus_x = x,
+                    .bonus_y = y,
+                    .bonus_dx = 0,
+                    .bonus_dy = 2,
+                    .vie_joueur = 0,
+                    .vitesse_joueur = 0,
+                    .vitesse_balle = 0,
+                    .score = 0
+            },
+            {
+                    .nom = "Bonus Ralentissement",
+                    .degats = 0,
+                    .skin = "bonus_ralentissement.png",
+                    .bonus_x = x,
+                    .bonus_y = y,
+                    .bonus_dx = 0,
+                    .bonus_dy = 2,
+                    .vie_joueur = 0,
+                    .vitesse_joueur = 0,
+                    .vitesse_balle = -2,   // Ralentit la balle
+                    .score = 0
+            }
+    };
+
+    // Nombre de bonus dans la liste
+    int nombre_bonus = 6;
+
+    // Sélection aléatoire d'un bonus
+    int index = rand() % nombre_bonus;
+
+    // Retourne le bonus sélectionné
+    return bonus_list[index];
+}
+
+joueur init_joueur(joueur joueur){
+    joueur.vitesse = 7;
+    joueur.taille = 75;
+    joueur.score = 0;
+    return joueur;
+}
+
+
+balle init_balle(balle balle){
+    balle.balle_x = WINDOW_X/2;
+    balle.balle_y = WINDOW_Y - 40;
+    balle.vitesse = 3;
+    balle.balle_dx = balle.vitesse;
+    balle.balle_dy = -balle.vitesse;
+    balle.degats = 1;
+    return balle;
+}
+
+balle deplacement(balle balle, int** carte, int taille, joueur *joueur, bonus* tabonus, int *nbonus) {
+    if (balle.balle_x >= WINDOW_X || balle.balle_x <= 0) {
         balle.balle_dx *= -1;
     } else if (balle.balle_y <= 0) {
         balle.balle_dy *= -1;
-    } else if (balle.balle_y > WINDOW_Y - 40 && balle.balle_x > joueur->x && balle.balle_x < joueur->x + joueur->taille) { //colision avec le joueur
+    } else if (balle.balle_y > WINDOW_Y - 40 && balle.balle_x > joueur->x && balle.balle_x < joueur->x + joueur->taille) {
         balle.balle_dy *= -1;
-    }else if (balle.balle_y >=  WINDOW_Y) {
-        balle.balle_x = WINDOW_X /2;
+    } else if (balle.balle_y >= WINDOW_Y) {
+        balle.balle_x = WINDOW_X / 2;
         degat_joueur(joueur);
-        balle.balle_y = 20;
-    } else if (carte[balle.balle_y / (WINDOW_Y / taille)][balle.balle_x / (WINDOW_X / taille)] > 0){
-        if (carte[(balle.balle_y - balle.vitesse) / (WINDOW_Y / taille)][balle.balle_x / (WINDOW_X / taille)] > 0){
+        *joueur = init_joueur(*joueur);
+        balle = init_balle(balle);
+    } else if (carte[balle.balle_y / (WINDOW_Y / taille)][balle.balle_x / (WINDOW_X / taille)] > 0) {
+        if (carte[(balle.balle_y - balle.vitesse) / (WINDOW_Y / taille)][balle.balle_x / (WINDOW_X / taille)] > 0) {
             balle.balle_dx *= -1;
-            carte[balle.balle_y / (WINDOW_Y / taille)][balle.balle_x / (WINDOW_X / taille)] -= balle.degats;//colision avec une brique
-        } else if (carte[balle.balle_y / (WINDOW_Y / taille)][(balle.balle_x - balle.vitesse) / (WINDOW_X / taille)] > 0){
+        } else if (carte[balle.balle_y / (WINDOW_Y / taille)][(balle.balle_x - balle.vitesse) / (WINDOW_X / taille)] > 0) {
             balle.balle_dy *= -1;
-            carte[balle.balle_y / (WINDOW_Y / taille)][balle.balle_x / (WINDOW_X / taille)] -= balle.degats; //colision avec une brique
         }
-        joueur->score +=1;
+        if(carte[balle.balle_y / (WINDOW_Y / taille)][balle.balle_x / (WINDOW_X / taille)] -= balle.degats < 0){
+            carte[balle.balle_y / (WINDOW_Y / taille)][balle.balle_x / (WINDOW_X / taille)] = 0;
+        } else {
+            carte[balle.balle_y / (WINDOW_Y / taille)][balle.balle_x / (WINDOW_X / taille)] -= balle.degats;
+        }
+        joueur->score += 1;
+
+        // Ajout d'un bonus aléatoire
+        if ((rand() % 10 + 1) == 1 && *nbonus < 40) { // Vérifiez que nbonus ne dépasse pas la taille de tabonus
+            tabonus[*nbonus] = creer_bonus(balle.balle_x, balle.balle_y);
+            (*nbonus)++; // Incrémentez nbonus
+        }
     }
+
+    // Déplacement des bonus et vérification des collisions avec le joueur
+    for (int i = 0; i < (*nbonus); i++) {
+        tabonus[i].bonus_x += tabonus[i].bonus_dx;
+        tabonus[i].bonus_y += tabonus[i].bonus_dy;
+
+        // Vérification de la collision entre le joueur et le bonus
+        if (tabonus[i].bonus_y >= joueur->y && tabonus[i].bonus_y <= joueur->y + 20 &&
+            tabonus[i].bonus_x >= joueur->x && tabonus[i].bonus_x <= joueur->x + joueur->taille) {
+            // Appliquer les effets du bonus au joueur
+            joueur->score += tabonus[i].score;
+            joueur->vie += tabonus[i].vie_joueur;
+            joueur->vitesse += tabonus[i].vitesse_joueur;
+            if(balle.balle_dx > 0){
+                balle.balle_dx += tabonus[i].vitesse_balle;
+            } else {
+                balle.balle_dx -= tabonus[i].vitesse_balle;
+            }
+
+            if(balle.balle_dy > 0){
+                balle.balle_dy += tabonus[i].vitesse_balle;
+            } else {
+                balle.balle_dy -= tabonus[i].vitesse_balle;
+            }
+
+            // Supprimer le bonus du tableau
+            for (int j = i; j < (*nbonus) - 1; j++) {
+                tabonus[j] = tabonus[j + 1];
+            }
+            (*nbonus)--;
+            i--; // Réajuster l'index après la suppression
+        } else if (tabonus[i].bonus_y > WINDOW_Y){
+            // Supprimer le bonus du tableau
+            for (int j = i; j < (*nbonus) - 1; j++) {
+                tabonus[j] = tabonus[j + 1];
+            }
+            (*nbonus)--;
+            i--; // Réajuster l'index après la suppression
+        }
+    }
+
     balle.balle_x += balle.balle_dx;
     balle.balle_y += balle.balle_dy;
     return balle;
 }
 
+double game1vs1(SDL_Window *window, SDL_Renderer *renderer, joueur joueur1, joueur joueur2, balle balle1, balle balle2, int taille, int **carte,bonus* tabonus, int *nbonus) {
+    clock_t start_time = clock();
+    int saisie = 1;
+    SDL_Event event;
 
-double game(SDL_Window *window, SDL_Renderer *renderer, joueur joueur, balle balle, int taille, int ** carte){
+    while (saisie) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                saisie = 0;
+            } else if (event.type == SDL_KEYDOWN) {
+                if (event.key.keysym.sym == SDLK_q) {
+                    joueur1.x -= joueur1.vitesse;
+                } else if (event.key.keysym.sym == SDLK_d) {
+                    joueur1.x += joueur1.vitesse;
+                }
+
+                if (event.key.keysym.sym == SDLK_LEFT) {
+                    joueur2.x -= joueur2.vitesse;
+                } else if (event.key.keysym.sym == SDLK_RIGHT) {
+                    joueur2.x += joueur2.vitesse;
+                }
+            }
+        }
+        if (joueur1.x < 0) {
+            joueur1.x = 0;
+        } else if (joueur1.x > (WINDOW_X / 2) - joueur1.taille) {
+            joueur1.x = (WINDOW_X / 2) - joueur1.taille;
+        }
+
+        if (joueur2.x < (WINDOW_X / 2)) {
+            joueur2.x = (WINDOW_X / 2);
+        } else if (joueur2.x > WINDOW_X - joueur2.taille) {
+            joueur2.x = WINDOW_X - joueur2.taille;
+        }
+
+        afficher_fond(renderer, joueur1);
+
+        affichierCarte1vs1(carte, taille, renderer,joueur1,joueur2);
+        afficherBonus(renderer, tabonus, *nbonus, taille);
+        printf("test");
+        balle1 = deplacement(balle1, carte, taille, &joueur1, tabonus, nbonus);
+        balle2 = deplacement(balle2, carte, taille, &joueur2, tabonus, nbonus);
+        afficherBalle1vs1(renderer, balle1,balle2, taille);
+        printf("test3");
+        printf("test4");
+        if (joueur1.vie <= 0 || joueur2.vie <= 0) {
+            saisie = 0;
+        }
+
+        SDL_RenderPresent(renderer);
+        SDL_Delay(10);
+    }
+
+    SDL_Delay(200);
+    clock_t end_time = clock();
+    return ((double)(end_time - start_time)) / CLOCKS_PER_SEC;
+}
+
+
+double game(SDL_Window *window, SDL_Renderer *renderer, joueur joueur, balle balle, int taille, int **carte, bonus* tabonus, int *nbonus) {
     clock_t begin = clock();
     double testTemps = 0.0;
     int saisie = 1;
@@ -624,15 +1095,15 @@ double game(SDL_Window *window, SDL_Renderer *renderer, joueur joueur, balle bal
             } else if (joueur.x > WINDOW_X - 75) {
                 joueur.x = WINDOW_X - 75;
             }
-
         }
         clock_t current_time = clock();
         joueur.temps = ((double)(current_time - begin)) / CLOCKS_PER_SEC;
         afficher_fond(renderer, joueur);
         affichierCarte(carte, taille, renderer, joueur);
-        balle = deplacement(balle, carte, taille, &joueur);
+        afficherBonus(renderer, tabonus, *nbonus, taille);
+        balle = deplacement(balle, carte, taille, &joueur, tabonus, nbonus);
         afficherBalle(renderer, balle, taille);
-        if(joueur.vie <= 0){
+        if (joueur.vie <= 0) {
             saisie = 0;
         }
         SDL_RenderPresent(renderer);
@@ -644,9 +1115,90 @@ double game(SDL_Window *window, SDL_Renderer *renderer, joueur joueur, balle bal
     return testTemps;
 }
 
+void menuPrincipal(SDL_Renderer *renderer, SDL_Window* window, int taille, balle balle1, bonus* tabonus, int nbonus, joueur joueur1) {
+    char* option[] = {"creer une carte", "charger une carte","Paremetre des bonus","Menu Adversaire"};
+    int choixMenu = fen_QCM(option, 4, "");
+    if (choixMenu == 0){
+        afficher_fond(renderer, joueur1);
+        CreatCarte(taille, renderer, joueur1);
+    }
+    else if (choixMenu == 1){
+        int ** carte = chargeCarteDansTab(choixCarte(), 20);
+        game(window, renderer, joueur1, balle1, taille, carte, tabonus, &nbonus);
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        libererCarte(carte, taille);
+        free(carte);
+        free(tabonus);
+        menuPrincipal(renderer, window, taille, balle1, tabonus, nbonus, joueur1);
+    }else if(choixMenu == 2) {
+        option[0] = "peronnaliser la balle";
+        option[1] = "peronnaliser le joueur";
+        switch (fen_QCM(option, 2, "paramètres")){
+            case 0 :
+                option[0] = "balle1.png";
+                option[1] = "balle2.png";
+                balle1.skin = fen_QCM2(option, 2, "choix balle", 50, 50);
+                break;
+            case 1 :
+                option[0] = "joueur1.png";
+                option[1] = "joueur2.png";
+                joueur1.skin = fen_QCM2(option, 2, "choix joueur", 100, 30);
+                break;
+        }
+        menuPrincipal(renderer, window, taille, balle1, tabonus, nbonus, joueur1);
+    }else if(choixMenu == 3) {
+        int menuAdversaire = fen_QCM(option, 2, "");
+        if (menuAdversaire == 0) {
+            int ** carte;
+            char* nom[255];
+            carte = CreatCarteAdversaire(20, renderer, joueur1);
+            double tempsj1 =game(window, renderer, joueur1, balle1, taille, carte, tabonus, &nbonus);
+            carte = CreatCarteAdversaire(20, renderer, joueur1);
+            double tempsj2 =game(window, renderer, joueur1, balle1, taille, carte, tabonus, &nbonus);
+            if(tempsj1 < tempsj2) {
+                snprintf(nom, sizeof(nom), "Le joueur 1 gagne avec le temps %.3lf s",tempsj1);
+                fen_QCM("", 0,nom);
+            }else if(tempsj2 < tempsj1) {
+                snprintf(nom, sizeof(nom), "Le joueur 2 gagne avec le temps %.3lf s",  tempsj2);
+                fen_QCM("", 0, nom);
+            }else if(tempsj1 = tempsj2) {
+                snprintf(nom, sizeof(nom), "les deux joueurs sont ex aequo %.3lf s ",  tempsj1);
+                fen_QCM("", 0, nom);
+            }
+            SDL_DestroyRenderer(renderer);
+            SDL_DestroyWindow(window);
+            SDL_Quit();
+            libererCarte(carte, taille);
+            free(carte);
+            free(tabonus);
+            menuPrincipal(renderer, window, taille, balle1, tabonus, nbonus, joueur1);
+        }else if (menuAdversaire == 1) {
+            joueur joueur2;
+            init_joueur(joueur2);
+            joueur2.x = WINDOW_X /4;
+            joueur2.y = WINDOW_Y - 30;
+            joueur2.skin= "joueur1.png";
+            joueur joueur3;
+            init_joueur(joueur3);
+            joueur3.x = 3 * WINDOW_X /4;
+            joueur3.y = WINDOW_Y - 30;
+            joueur3.skin = "joueur2.png";
+            balle balle2;
+            init_balle(balle2);
+            balle2.skin = "balle1.png";
+            balle balle3;
+            init_balle(balle3);
+            balle3.skin = "balle2.png";
+            int ** carte;
+            carte = CreatCarte1vs1(21, renderer,joueur2,joueur3);
+            game1vs1(window,renderer,joueur2,joueur3,balle2,balle3,taille, carte, tabonus, &nbonus);
+            }
+    }
+}
 
-void menuPrincipal() {
-
+int main(int argc, char *argv[]) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         fprintf(stderr, "Erreur d'initialisation de SDL: %s\n", SDL_GetError());
         exit(EXIT_FAILURE);
@@ -678,79 +1230,21 @@ void menuPrincipal() {
 
     int taille = 20;
     balle balle1;
-    balle1.balle_x = WINDOW_X/2;
-    balle1.balle_y = 200;
-    balle1.vitesse = 3;
-    balle1.balle_dx = balle1.vitesse;
-    balle1.balle_dy = balle1.vitesse;
-    balle1.degats = 1;
-    balle1.skin = "balle1.png";
+    init_balle(balle1);
 
     joueur joueur;
+    init_joueur(joueur);
     joueur.x = WINDOW_X/2;
     joueur.y = WINDOW_Y - 30;
     joueur.vie = 1;
-    joueur.vitesse = 7;
-    joueur.taille = 75;
-    joueur.score = 0;
     joueur.skin = "joueur1.png";
-    char* option[] = {"creer une carte", "charger une carte","Paremetre des bonus","Menu Adversaire"};
-    int choixMenu = fen_QCM(option, 4, "");
-    if (choixMenu == 0){
-        CreatCarte(taille, renderer, joueur);
-    }
-    else if (choixMenu == 1){
-        int ** carte = chargeCarteDansTab(choixCarte(), 20);
-        game(window, renderer, joueur, balle1, taille, carte);
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        menuPrincipal();
-    }else if(choixMenu == 2) {
-        option[0] = "peronnaliser la balle";
-        option[1] = "peronnaliser le joueur";
-        switch (fen_QCM(option, 2, "paramètres")){
-            case 0 :
-                option[0] = "balle1.png";
-                option[1] = "balle2.png";
-                fen_QCM2(option, 2, "choix balle", 50, 50);
-                break;
-            case 1 :
-                option[0] = "joueur1.png";
-                option[1] = "joueur2.png";
-                fen_QCM2(option, 2, "choix joueur", 100, 30);
-                break;
-        }
-    }else if(choixMenu == 3) {
-        int menuAdversaire = fen_QCM(option, 2, "");
-        if (menuAdversaire == 0) {
-            int ** carte;
-            char* nom[255];
-            carte = CreatCarteAdversaire(20, renderer, joueur);
-            double tempsj1 = game(window, renderer, joueur, balle1, taille, carte);
-            carte = CreatCarteAdversaire(20, renderer, joueur);
-            double tempsj2 = game(window, renderer, joueur, balle1, taille, carte);
-            if(tempsj1 < tempsj2) {
-                snprintf(nom, sizeof(nom), "Le joueur 1 gagne avec le temps %.3lf s",tempsj1);
-                fen_QCM("", 0,nom);
-            }else if(tempsj2 < tempsj1) {
-                snprintf(nom, sizeof(nom), "Le joueur 2 gagne avec le temps %.3lf s",  tempsj2);
-                fen_QCM("", 0, nom);
-            }else if(tempsj1 = tempsj2) {
-                snprintf(nom, sizeof(nom), "les deux joueurs sont ex aequo %.3lf s ",  tempsj1);
-                fen_QCM("", 0, nom);
-            }
-            SDL_DestroyRenderer(renderer);
-            SDL_DestroyWindow(window);
-            SDL_Quit();
-        }else if (menuAdversaire == 1) {
-            int ** carte = chargeCarteDansTab(choixCarte(), 20);
-            game(window, renderer, joueur, balle1, taille, carte);
-        }
-    }
-}
 
-int main(int argc, char *argv[]) {
-    menuPrincipal();
+    int nbonus = 0;
+    bonus *tabonus = (bonus *)malloc(40 * sizeof(bonus));
+    if (tabonus == NULL) {
+        fprintf(stderr, "Erreur d'allocation mémoire pour tabonus.\n");
+        exit(EXIT_FAILURE);
+    }
+    menuPrincipal(renderer, window, taille, balle1, tabonus, nbonus, joueur);
     return 0;
 }
