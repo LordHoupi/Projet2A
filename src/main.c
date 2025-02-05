@@ -1156,28 +1156,28 @@ double game(SDL_Window *window, SDL_Renderer *renderer, joueur joueur, balle bal
     return testTemps;
 }
 
-void menuPrincipal(SDL_Renderer *renderer, SDL_Window* window, int taille, balle balle1, bonus* tabonus, int nbonus, joueur joueur) {
+void menuPrincipal(SDL_Renderer *renderer, SDL_Window* window, int taille, balle balle1, bonus* tabonus, int nbonus, joueur joueur1) {
     char* option[] = {"creer une carte", "charger une carte","Paremetre des bonus","Menu Adversaire"};
     int choixMenu = fen_QCM(option, 4, "");
     if (choixMenu == 0){
-        afficher_fond(renderer, joueur);
-        CreatCarte(taille, renderer, joueur);
-        menuPrincipal(renderer, window, taille, balle1, tabonus, nbonus, joueur);
+        afficher_fond(renderer, joueur1);
+        CreatCarte(taille, renderer, joueur1);
+        menuPrincipal(renderer, window, taille, balle1, tabonus, nbonus, joueur1);
     }
     else if (choixMenu == 1){
         int ** carte = chargeCarteDansTab(choixCarte(), 20);
-        game(window, renderer, joueur, balle1, taille, carte, tabonus, &nbonus);
+        game(window, renderer, joueur1, balle1, taille, carte, tabonus, &nbonus);
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
         SDL_Quit();
         libererCarte(carte, taille);
         free(carte);
         free(tabonus);
-        menuPrincipal(renderer, window, taille, balle1, tabonus, nbonus, joueur);
+        menuPrincipal(renderer, window, taille, balle1, tabonus, nbonus, joueur1);
     }else if(choixMenu == 2) {
         option[0] = "peronnaliser la balle";
         option[1] = "peronnaliser le joueur";
-        switch (fen_QCM(option, 2, "paramètres")){
+        switch (fen_QCM(option, 2, "paramètres")) {
             case 0 :
                 option[0] = "balle1.png";
                 option[1] = "balle2.png";
@@ -1186,32 +1186,59 @@ void menuPrincipal(SDL_Renderer *renderer, SDL_Window* window, int taille, balle
             case 1 :
                 option[0] = "joueur1.png";
                 option[1] = "joueur2.png";
-                joueur.skin = fen_QCM2(option, 2, "choix joueur", 100, 30);
+                joueur1.skin = fen_QCM2(option, 2, "choix joueur", 100, 30);
                 break;
         }
-        menuPrincipal(renderer, window, taille, balle1, tabonus, nbonus, joueur);
-    }else if(choixMenu == 3) {
-        int menuAdversaire = fen_QCM(option, 2, "");
-        if (menuAdversaire == 0) {
-            int ** carte;
-            carte = CreatCarteAdversaire(20, renderer, joueur);
-            game(window, renderer, joueur, balle1, taille, carte, tabonus, &nbonus);
-            carte = CreatCarteAdversaire(20, renderer, joueur);
-            game(window, renderer, joueur, balle1, taille, carte, tabonus, &nbonus);
-            SDL_DestroyRenderer(renderer);
-            SDL_DestroyWindow(window);
-            SDL_Quit();
-            libererCarte(carte, taille);
-            free(carte);
-            free(tabonus);
-            menuPrincipal(renderer, window, taille, balle1, tabonus, nbonus, joueur);
-        }else if (menuAdversaire == 1) {
-            int ** carte = chargeCarteDansTab(choixCarte(), 20);
-            game(window, renderer, joueur, balle1, taille, carte, tabonus, &nbonus);
-            menuPrincipal(renderer, window, taille, balle1, tabonus, nbonus, joueur);
+        menuPrincipal(renderer, window, taille, balle1, tabonus, nbonus, joueur1);
+    } else if(choixMenu == 3) {
+            int menuAdversaire = fen_QCM(option, 2, "");
+            if (menuAdversaire == 0) {
+                int ** carte;
+                char* nom[255];
+                carte = CreatCarteAdversaire(20, renderer, joueur1);
+                double tempsj1 =game(window, renderer, joueur1, balle1, taille, carte, tabonus, &nbonus);
+                carte = CreatCarteAdversaire(20, renderer, joueur1);
+                double tempsj2 =game(window, renderer, joueur1, balle1, taille, carte, tabonus, &nbonus);
+                if(tempsj1 < tempsj2) {
+                    snprintf(nom, sizeof(nom), "Le joueur 1 gagne avec le temps %.3lf s",tempsj1);
+                    fen_QCM("", 0,nom);
+                }else if(tempsj2 < tempsj1) {
+                    snprintf(nom, sizeof(nom), "Le joueur 2 gagne avec le temps %.3lf s",  tempsj2);
+                    fen_QCM("", 0, nom);
+                }else if(tempsj1 = tempsj2) {
+                    snprintf(nom, sizeof(nom), "les deux joueurs sont ex aequo %.3lf s ",  tempsj1);
+                    fen_QCM("", 0, nom);
+                }
+                SDL_DestroyRenderer(renderer);
+                SDL_DestroyWindow(window);
+                SDL_Quit();
+                libererCarte(carte, taille);
+                free(carte);
+                free(tabonus);
+                menuPrincipal(renderer, window, taille, balle1, tabonus, nbonus, joueur1);
+            }else if (menuAdversaire == 1) {
+                joueur joueur2;
+                init_joueur(joueur2);
+                joueur2.x = WINDOW_X /4;
+                joueur2.y = WINDOW_Y - 30;
+                joueur2.skin= "joueur1.png";
+                joueur joueur3;
+                init_joueur(joueur3);
+                joueur3.x = 3 * WINDOW_X /4;
+                joueur3.y = WINDOW_Y - 30;
+                joueur3.skin = "joueur2.png";
+                balle balle2;
+                init_balle(balle2);
+                balle2.skin = "balle1.png";
+                balle balle3;
+                init_balle(balle3);
+                balle3.skin = "balle2.png";
+                int ** carte;
+                carte = CreatCarte1vs1(21, renderer,joueur2,joueur3);
+                game1vs1(window,renderer,joueur2,joueur3,balle2,balle3,taille, carte, tabonus, &nbonus);
+            }
         }
     }
-}
 
 int main(int argc, char *argv[]) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
